@@ -21,7 +21,7 @@
 #error "This module only for FreeBSD"
 #endif
 
-static const char cvsid[] = "$Revision$";
+static const char cvsid[] = " $Revision$ ";
 	      
 #include "httpd.h"
 #include "http_config.h"
