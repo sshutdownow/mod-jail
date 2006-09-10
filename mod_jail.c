@@ -12,13 +12,16 @@
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
  * License for the specific language governing permissions and limitations
  * under the License.
+ *
+ * $Author$
+ * $Date$
  */
 	      
 #ifndef __FreeBSD__
 #error "This module only for FreeBSD"
 #endif
 
-static const char cvsid[] = "$$";
+static const char cvsid[] = "$Rev$";
 	      
 #include "httpd.h"
 #include "http_config.h"
