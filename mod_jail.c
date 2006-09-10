@@ -15,13 +15,14 @@
  *
  * $Author$
  * $Date$
+ * $Id$
  */
 	      
 #ifndef __FreeBSD__
 #error "This module only for FreeBSD"
 #endif
 
-static const char cvsid[] = " $Id$ ";
+static const char cvsid[] = "";
 	      
 #include "httpd.h"
 #include "http_config.h"
