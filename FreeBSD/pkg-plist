@@ -1,0 +1,8 @@
+libexec/apache/mod_jail.so
+@exec %D/sbin/apxs -e -A -n jail %f
+@unexec %D/sbin/apxs -e -A -n jail %f
+%%PORTDOCS%%%%DOCSDIR%%/INSTALL
+%%PORTDOCS%%%%DOCSDIR%%/README
+%%PORTDOCS%%%%DOCSDIR%%/TODO
+%%PORTDOCS%%%%DOCSDIR%%/httpd.conf.add
+%%PORTDOCS%%@dirrm %%DOCSDIR%%
