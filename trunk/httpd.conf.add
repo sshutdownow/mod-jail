@@ -1,7 +1,7 @@
 #
 # Copyright (c) 2006-2007 Igor Popov <igorpopov@newmail.ru>
 # 
-# $$
+# $Id$
 #
 
 LoadModule jail_module        libexec/apache/mod_jail.so
