@@ -19,25 +19,27 @@
 	<div class="line"></div>
 
 	<div class="mainbody">
- 	<h3><a hRef='download.html'>Current version</a>: 0.1</h3>
+ 	<h3><a hRef='download.html'>Current version</a>: 0.4</h3>
 	
 	<h3>Installation instructions:</h3>
-	<h4>Prerequisities:</h4>
-	    This packages are required for successufull compilation:
-	    <table border='0'>
-		<tr><td>apache13-dev</td></tr>
-		<tr><td>mysql-dev</td></tr>
-	    </table>
-	<h4>Download source code:</h4>
-	    The latest version of mod_jail <a hRef='download.html'>is here</a>	    
-	<h4>Building mod_myuserdir:</h4>
-    	    just type <code>make</code>
-	<h4>Install mod_myuserdir:</h4>
+	<h4>From packages:</h4>
+	    <code># pkg_add -r mod_jail</code>
+	<h4>From ports:</h4>
+	    <code># cd /usr/ports/www/mod_jail && make all install clean</code>
+	<h4>From source code:</h4>
+	    Download source code of mod_jail from <a hRef='download.html'>this page</a>,
+	    extract and decompress it <code>tar -xzvf mod_jail-0.4.tar.gz</code>
+	<h5>Building mod_jail:</h5>
+    	    just type <code>cd mod_jail && make</code>
+	<h5>Install mod_jail:</h5>
 	    <code>make install</code> (as root)
 
 	<h4>Apache:</h4>	    
 	    Edit apache config, you may use httpd.conf.add as example,
-	    make shure that mod_jail.so is first after <code>ClearModuleList</code>.
+	    if you are using apache 1.3 make shure that <code>AddModule mod_jail.so</code>
+	    is next line after <code>ClearModuleList</code>,
+	    for apache2 <code>LoadModule libexec/apache2/mod_jail2.so</code>
+	    is enough.
 	    <pre>
 LoadModule jail_module        libexec/apache/mod_jail.so
 # ...
@@ -50,7 +52,7 @@ AddModule mod_jail.c
         jail_rootdir            "/usr/local/www"
         jail_hostname           "www.localhost.net"
         jail_address            192.168.0.1
-        jail_scrlevel           3
+        jail_scrlevel           3 # recommended value
 &lt;/IfModule&gt;
 	    </pre>
 	    All parameters must be set.
@@ -68,12 +70,12 @@ AddModule mod_jail.c
 </pre>		   
 	    <br />
 	    <p>
-	    This module is tested to compile and work on FreeBSD 6.0 and 6.1.
+	    This module is tested to compile and work on FreeBSD 6.0, 6.1 and 6.2.
 	    I expect it to work on any FreeBSD &gt; 4.0
 	    </p>
 	</div>
 	<div class="line"></div>
-	<div class="copyright">Copyright &copy; 2006
+	<div class="copyright">Copyright &copy; 2006-2007
 		<a href="mailto:igorpopov@newmail.ru">Igor Popov</a>
 	</div>
 </body>
