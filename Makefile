@@ -15,7 +15,7 @@ RM = rm -f
 LN = ln -sf
 CP = cp -f
 
-CFLAGS =  -Wc,-Wall
+CFLAGS =  -Wc,-W -Wc,-Wall
 #CFLAGS += -DNDEBUG
 CFLAGS +=  -DDEBUG
 
