@@ -42,7 +42,7 @@
 
 #define JAIL_CTX "global::jail_module_ctx"
 
-static const char __unused cvsid[] = "$svn:author$";
+static const char __unused cvsid[] = "$CVSID$";
 
 typedef struct {
     struct jail jail;
