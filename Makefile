@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Igor Popov <igorpopov@newmail.ru>
+# Copyright (c) 2006-2007 Igor Popov <igorpopov@newmail.ru>
 #
 # $Id$
 #
