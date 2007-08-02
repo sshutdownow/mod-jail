@@ -1,7 +1,7 @@
 #
 # Copyright (c) 2006 Igor Popov <igorpopov@newmail.ru>
 #
-# $$
+# $Id$
 #
 
 NAME = jail
