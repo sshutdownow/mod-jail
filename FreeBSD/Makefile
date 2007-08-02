@@ -2,7 +2,7 @@
 # Date created:				October 25 2005
 # Whom:					Igor Popov <igorpopov@newmail.ru>
 #
-# $$
+# $Id$
 
 PORTNAME=	mod_jail
 PORTVERSION=	0.4
