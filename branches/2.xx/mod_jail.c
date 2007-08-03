@@ -206,7 +206,7 @@ static const char *set_jail_scrlvl(cmd_parms *cmd, void *dummy __unused, const c
 
 /* Dispatch list of content handlers */
 static const command_rec jail_cmds[] = {
-    AP_INIT_TAKE1("jail_rootdir",  set_jail_root,  NULL, RSRC_CONF, "Set directory that is to be the root of the prison."),
+    AP_INIT_TAKE1("jail_rootdir",  set_jail_root, NULL, RSRC_CONF, "Set directory that is to be the root of the prison."),
     AP_INIT_TAKE1("jail_hostname", set_jail_host, NULL, RSRC_CONF, "Set hostname of the prison."),
     AP_INIT_TAKE1("jail_address",  set_jail_addr, NULL, RSRC_CONF, "Set the ip address assigned to the jail prison."),
     AP_INIT_TAKE1("jail_scrlevel", set_jail_scrlvl, NULL, RSRC_CONF, "Set securelevel inside jail prison."),
