@@ -131,6 +131,43 @@ static void *jail_server_config(apr_pool_t *p, server_rec *s __unused)
 	
 
 /* Config stuff */
+static const char *set_jail_root(cmd_parms *cmd, void *dummy __unused, const char *arg)
+{
+    p_jail_cfg_t cfg = ap_get_module_config(cmd->server->module_config, &jail_module);
+    const char *errmsg = ap_check_cmd_context(cmd, GLOBAL_ONLY);
+    
+    if (errmsg) {
+	return errmsg;
+    }	
+    if (!arg || !strlen(arg)) {
+        return "jail_rootdir must be set";
+    }
+    if (!ap_is_directory(cmd->pool, arg)) {
+	return "jail_rootdir doesn't exist";
+    }
+    cfg->jail.path = apr_pstrdup(cmd->pool,arg);
+
+    return NULL;
+}
+
+static const char *set_jail_host(cmd_parms *cmd, void *dummy __unused, const char *arg)
+{
+    p_jail_cfg_t cfg = ap_get_module_config(cmd->server->module_config, &jail_module);
+    const char *errmsg = ap_check_cmd_context(cmd, GLOBAL_ONLY);
+    
+    if (errmsg) {
+	return errmsg;
+    }	
+    if (!arg || !strlen(arg)) {
+        return "jail_hostname must be set";
+    }
+
+    cfg->jail.hostname = apr_pstrdup(cmd->pool,arg);
+
+    return NULL;
+}
+
+
 static const char *set_jail_addr(cmd_parms *cmd, void *dummy __unused, const char *arg)
 {
     p_jail_cfg_t cfg = ap_get_module_config(cmd->server->module_config, &jail_module);
@@ -169,9 +206,9 @@ static const char *set_jail_scrlvl(cmd_parms *cmd, void *dummy __unused, const c
 
 /* Dispatch list of content handlers */
 static const command_rec jail_cmds[] = {
-    AP_INIT_TAKE1("jail_rootdir", ap_set_string_slot,  (void*)APR_OFFSETOF(jail_cfg_t, jail.path), RSRC_CONF, "Set directory that is to be the root of the prison."),
-    AP_INIT_TAKE1("jail_hostname", ap_set_string_slot, (void*)APR_OFFSETOF(jail_cfg_t, jail.hostname), RSRC_CONF, "Set hostname of the prison."),
-    AP_INIT_TAKE1("jail_address", set_jail_addr, NULL, RSRC_CONF, "Set the ip address assigned to the jail prison."),
+    AP_INIT_TAKE1("jail_rootdir",  set_jail_root,  NULL, RSRC_CONF, "Set directory that is to be the root of the prison."),
+    AP_INIT_TAKE1("jail_hostname", set_jail_host, NULL, RSRC_CONF, "Set hostname of the prison."),
+    AP_INIT_TAKE1("jail_address",  set_jail_addr, NULL, RSRC_CONF, "Set the ip address assigned to the jail prison."),
     AP_INIT_TAKE1("jail_scrlevel", set_jail_scrlvl, NULL, RSRC_CONF, "Set securelevel inside jail prison."),
     { NULL },
 };
