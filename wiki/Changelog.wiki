@@ -1,6 +1,12 @@
 #labels Featured
 ==Changelog==
 
+===09 Mar 2009===
+{{{
+    Version 0.5
+    Merged patch from FreeBSD's ports for new multi-IPv4 jail API.
+}}}
+
 ===15 Feb 2007===
 {{{
     Version 0.4
