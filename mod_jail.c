@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2007 Igor Popov <igorpopov@newmail.ru>
+ * Copyright (c) 2006-2009 Igor Popov <igorpopov@newmail.ru>
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -132,7 +132,11 @@ static void *jail_server_config(pool *p, server_rec *s __unused)
     p_jail_cfg_t cfg = (p_jail_cfg_t) ap_pcalloc(p, sizeof(jail_cfg_t));
 
     cfg->jail_scrlevel = 3; /* good default value */
+#if ((__FreeBSD_version >= 800000 && __FreeBSD_version < 800056) || __FreeBSD_version < 701103)
     cfg->jail.version = 0;
+#else
+    cfg->jail.version = JAIL_API_VERSION;
+#endif
     return (void *)cfg;
 }
 
@@ -192,7 +196,13 @@ static const char *set_jail_addr(cmd_parms *cmd, void *p __unused, char *arg)
     if (!inet_aton(arg, &in)) {
         return "could not make sense of jail ip address";
     }
+#if ((__FreeBSD_version >= 800000 && __FreeBSD_version < 800056) || __FreeBSD_version < 701103)
     cfg->jail.ip_number = ntohl(in.s_addr);
+#else
+    cfg->jail.ip4s = 1;
+    cfg->jail.ip4 = ap_pcalloc(cmd->pool, sizeof(struct in_addr));
+    cfg->jail.ip4[0].s_addr = in.s_addr;
+#endif
 
     return NULL;
 }
@@ -331,7 +341,11 @@ static void *jail_server_config(apr_pool_t *p, server_rec *s __unused)
         return NULL;
     }
     cfg->jail_scrlevel = 3; /* good default value */
+#if ((__FreeBSD_version >= 800000 && __FreeBSD_version < 800056) || __FreeBSD_version < 701103)
     cfg->jail.version = 0;
+#else
+    cfg->jail.version = JAIL_API_VERSION;
+#endif
     return (void*)cfg;
 }
 
@@ -389,7 +403,13 @@ static const char *set_jail_addr(cmd_parms *cmd, void *dummy __unused, const cha
     if (!inet_aton(arg, &in)) {
         return "could not make sense of jail ip address";
     }
+#if ((__FreeBSD_version >= 800000 && __FreeBSD_version < 800056) || __FreeBSD_version < 701103)
     cfg->jail.ip_number = ntohl(in.s_addr);
+#else
+    cfg->jail.ip4s = 1;
+    cfg->jail.ip4 = ap_pcalloc(cmd->pool, sizeof(struct in_addr));
+    cfg->jail.ip4[0].s_addr = in.s_addr;
+#endif
 
     return NULL;
 }
