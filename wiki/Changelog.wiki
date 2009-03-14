@@ -1,5 +1,9 @@
 #labels Featured
 ==Changelog==
+===14 Mar 2009===
+{{{
+    Added patch for Apache 2.2.11 that uses jail intead of chroot and FreeBSD's port that contains this patch.
+}}}
 
 ===09 Mar 2009===
 {{{
