@@ -2,7 +2,7 @@
 ==Changelog==
 ===14 Mar 2009===
 {{{
-    Added patch for Apache 2.2.11 that uses jail intead of chroot and FreeBSD's port that contains this patch.
+    Starting from version 2.2.10, Apache supports chroot on Unix-like platforms. To svn tree added patch for Apache 2.2.11 that uses jail intead of chroot and FreeBSD's port that contains this patch.
 }}}
 
 ===09 Mar 2009===
