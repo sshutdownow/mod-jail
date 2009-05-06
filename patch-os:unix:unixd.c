@@ -1,5 +1,5 @@
 --- os/unix/unixd.c.orig	2008-09-18 21:42:18.000000000 +0300
-+++ os/unix/unixd.c	2009-03-13 22:48:40.000000000 +0200
++++ os/unix/unixd.c	2009-05-06 23:11:05.000000000 +0300
 @@ -118,20 +118,20 @@
          return -1;
      }
@@ -56,9 +56,8 @@
      if (!ap_is_directory(cmd->pool, arg)) {
 -        return "ChrootDir must be a valid directory";
 +        return "JailDir must be a valid directory";
-     }
- 
--    unixd_config.chroot_dir = arg;
++    }
++
 +    unixd_config.jail.path = arg;
 +    return NULL;
 +}
@@ -83,8 +82,9 @@
 +    }
 +    if (!inet_aton(arg, &in)) {
 +	return "could not make sense of jail ip address";
-+    }
-+
+     }
+ 
+-    unixd_config.chroot_dir = arg;
 +#if ((__FreeBSD_version >= 800000 && __FreeBSD_version < 800056) || __FreeBSD_version < 701103)
 +    unixd_config.jail.ip_number = ntohl(in.s_addr);
 +#else
@@ -104,22 +104,25 @@
      return NULL;
  }
  
-@@ -245,7 +293,19 @@
+@@ -244,8 +292,21 @@
+     unixd_config.user_name = DEFAULT_USER;
      unixd_config.user_id = ap_uname2id(DEFAULT_USER);
      unixd_config.group_id = ap_gname2id(DEFAULT_GROUP);
-     
+-    
 -    unixd_config.chroot_dir = NULL; /* none */
-+    memset(&unixd_config.jail, 0, sizeof(unixd_config.jail));
-+    unixd_config.jail.path = NULL; /* none */
-+    unixd_config.jail.hostname = "localhost";
++
 +#if ((__FreeBSD_version >= 800000 && __FreeBSD_version < 800056) || __FreeBSD_version < 701103)
-+    unixd_config.jail.version = 0;
-+    unixd_config.jail.ip_number = INADDR_LOOPBACK;
++    unixd_config.jail = { .version = 0, .path = NULL, .hostname = "localhost", .ip_number = INADDR_LOOPBACK };
 +#else
 +    unixd_config.jail.version = JAIL_API_VERSION;
++    unixd_config.jail.path = NULL; /* none */
++    unixd_config.jail.hostname = "localhost";
++    unixd_config.jail.jailname = NULL;
 +    unixd_config.jail.ip4s = 1;
-+    unixd_config.jail.ip4 = ap_pcalloc(cmd->pool, sizeof(struct in_addr));
++    unixd_config.jail.ip6s = 0;
++    unixd_config.jail.ip4 = apr_pcalloc(ptemp, sizeof(struct in_addr));
 +    unixd_config.jail.ip4[0].s_addr = htonl(INADDR_LOOPBACK);
++    unixd_config.jail.ip6 = NULL;
 +#endif
 +    unixd_config.jail_securelevel = 3;
  
