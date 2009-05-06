@@ -1,5 +1,11 @@
 #labels Featured
 ==Changelog==
+===06 May 2009===
+{{{
+    Make jail patch for Apache 2.2.11 to work with new jail API on FreeBSD 7.2.
+}}}
+
+
 ===16 Apr 2009===
 {{{
     To svn tree added patch for FreeBSD's port of the Apache 1.3.41 that allows to run Apaches in jail(2) prison. Using of this patch is prefered over original mod_jail.
