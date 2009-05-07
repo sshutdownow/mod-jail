@@ -1,6 +1,6 @@
-diff -u -uwr conf/httpd.conf-dist conf/httpd.conf-dist
---- conf/httpd.conf-dist	2009-04-16 23:21:00.000000000 +0300
-+++ conf/httpd.conf-dist	2009-04-16 22:13:31.000000000 +0300
+diff -uwr conf/httpd.conf-dist conf/httpd.conf-dist
+--- conf/httpd.conf-dist	2009-05-07 20:34:47.000000000 +0300
++++ conf/httpd.conf-dist	2009-05-06 23:53:00.000000000 +0300
 @@ -59,6 +59,21 @@
  ServerRoot "@@ServerRoot@@"
  
@@ -23,11 +23,9 @@ diff -u -uwr conf/httpd.conf-dist conf/httpd.conf-dist
  # The LockFile directive sets the path to the lockfile used when Apache
  # is compiled with either USE_FCNTL_SERIALIZED_ACCEPT or
  # USE_FLOCK_SERIALIZED_ACCEPT. This directive should normally be left at
-Only in conf: httpd.conf-dist.orig
-Only in apache_1.3.41: configure.orig
-diff -u -uwr src/include/http_conf_globals.h src/include/http_conf_globals.h
---- src/include/http_conf_globals.h	2006-07-12 11:16:05.000000000 +0300
-+++ src/include/http_conf_globals.h	2009-04-16 20:43:18.000000000 +0300
+diff -uwr /src/include/http_conf_globals.h src/include/http_conf_globals.h
+--- /src/include/http_conf_globals.h	2006-07-12 11:16:05.000000000 +0300
++++ src/include/http_conf_globals.h	2009-05-06 23:53:00.000000000 +0300
 @@ -75,7 +75,13 @@
  
  extern API_VAR_EXPORT char ap_server_root[MAX_STRING_LEN];
@@ -43,9 +41,10 @@ diff -u -uwr src/include/http_conf_globals.h src/include/http_conf_globals.h
  /* for -C, -c and -D switches */
  extern API_VAR_EXPORT array_header *ap_server_pre_read_config;
  extern API_VAR_EXPORT array_header *ap_server_post_read_config;
-diff -u -uwr src/main/http_core.c src/main/http_core.c
+Only in src/include: http_conf_globals.h.orig
+diff -uwr src/main/http_core.c src/main/http_core.c
 --- src/main/http_core.c	2006-07-12 11:16:05.000000000 +0300
-+++ src/main/http_core.c	2009-04-16 22:24:38.000000000 +0300
++++ src/main/http_core.c	2009-05-07 20:31:00.000000000 +0300
 @@ -54,6 +54,17 @@
  #define MMAP_LIMIT              (4*1024*1024)
  #endif
@@ -80,7 +79,7 @@ diff -u -uwr src/main/http_core.c src/main/http_core.c
  	if (cmd->server->is_virtual) {
  	    fprintf(stderr, "Warning: DocumentRoot [%s] does not exist\n",
  		    arg);
-@@ -2237,6 +2252,66 @@
+@@ -2237,6 +2252,70 @@
      return NULL;
  }
  
@@ -124,10 +123,14 @@ diff -u -uwr src/main/http_core.c src/main/http_core.c
 +    if (!inet_aton(arg, &in)) {
 +	return "could not make sense of jail ip address";
 +    }
-+#if ((__FreeBSD_version >= 800000 && __FreeBSD_version < 800056) || __FreeBSD_version < 701103)
-+    ap_jail.ip_number = ntohl(in.s_addr);
-+#else
++#if defined(JAIL_API_VERSION)
++    if (ap_jail.ip4s == 0 && ap_jail.ip4 == NULL) {
++	ap_jail.ip4 = ap_pcalloc(cmd->pool, sizeof(struct in_addr));
++    }
++    ap_jail.ip4s = 1;
 +    ap_jail.ip4[0].s_addr = in.s_addr;
++#else
++    ap_jail.ip_number = ntohl(in.s_addr);
 +#endif
 +    return NULL;
 +}
@@ -147,7 +150,7 @@ diff -u -uwr src/main/http_core.c src/main/http_core.c
  static const char *set_timeout(cmd_parms *cmd, void *dummy, char *arg)
  {
      const char *err = ap_check_cmd_context(cmd, NOT_IN_DIR_LOC_FILE|NOT_IN_LIMIT);
-@@ -3539,7 +3614,16 @@
+@@ -3539,7 +3618,16 @@
    TAKE1, "The name of the default charset to add to any Content-Type without one or 'Off' to disable" },
  
  /* Old resource config file commands */
@@ -165,9 +168,9 @@ diff -u -uwr src/main/http_core.c src/main/http_core.c
  { "AccessFileName", set_access_name, NULL, RSRC_CONF, RAW_ARGS,
    "Name(s) of per-directory config files (default: .htaccess)" },
  { "DocumentRoot", set_document_root, NULL, RSRC_CONF, TAKE1,
-diff -u -uwr src/main/http_main.c src/main/http_main.c
+diff -uwr src/main/http_main.c src/main/http_main.c
 --- src/main/http_main.c	2007-11-15 23:31:15.000000000 +0200
-+++ src/main/http_main.c	2009-04-16 22:23:30.000000000 +0300
++++ src/main/http_main.c	2009-05-07 20:33:05.000000000 +0300
 @@ -241,6 +241,17 @@
  #endif
  #endif
@@ -186,24 +189,32 @@ diff -u -uwr src/main/http_main.c src/main/http_main.c
  int ap_dump_settings = 0;
  API_VAR_EXPORT int ap_extended_status = 0;
  
-@@ -270,7 +281,15 @@
+@@ -270,7 +281,23 @@
   */
  listen_rec *ap_listeners=NULL;
  static listen_rec *head_listener;
 -
-+#if defined(__FreeBSD_version) && ((__FreeBSD_version >= 800000 && __FreeBSD_version < 800056) || __FreeBSD_version < 701103)
++#if defined(__FreeBSD_version) && (__FreeBSD_version > 400000)
++#if defined(JAIL_API_VERSION)
++API_VAR_EXPORT struct jail ap_jail = {
++	.version = JAIL_API_VERSION,
++	.path = NULL,
++	.hostname = "localhost",
++	.jailname = NULL,
++	.ip4s = 0,
++	.ip6s = 0,
++	.ip4 = NULL,
++	.ip6 = NULL };
++API_VAR_EXPORT int  ap_jail_securelevel = 3;
++#else
 +API_VAR_EXPORT struct jail ap_jail = { .version = 0, .path = NULL, .hostname = "localhost", .ip_number = INADDR_LOOPBACK };
 +API_VAR_EXPORT int  ap_jail_securelevel = 3;
-+#elif defined(__FreeBSD_version) && (__FreeBSD_version >= 800056)
-+#error "Must be FIXED!!!"
-+static struct in_addr ip4 = { .s_addr = 0 /*htonl(INADDR_LOOPBACK)*/ };
-+API_VAR_EXPORT struct jail ap_jail = { .version = JAIL_API_VERSION, .path = NULL, .hostname = "localhost", .ip4s = 1, .ip4 = &ip4 };
-+API_VAR_EXPORT int  ap_jail_securelevel = 3;
-+#endif */ __FreeBSD_version */
++#endif /* JAIL_API_VERSION */
++#endif /* __FreeBSD_version */
  API_VAR_EXPORT char ap_server_root[MAX_STRING_LEN]="";
  API_VAR_EXPORT char ap_server_confname[MAX_STRING_LEN]="";
  API_VAR_EXPORT char ap_coredump_dir[MAX_STRING_LEN]="";
-@@ -4483,6 +4502,42 @@
+@@ -4483,6 +4510,56 @@
      }
      GETUSERMODE();
  #else
@@ -225,6 +236,20 @@ diff -u -uwr src/main/http_main.c src/main/http_main.c
 +			"Unable to chdir to %s", ap_jail.path);
 +	    exit(1);
 +	}
++	
++#if defined(JAIL_API_VERSION)
++	if (ap_jail.ip4s == 0 && ap_jail.ip4 == NULL) {
++	    ap_jail.ip4 = ap_pcalloc(pchild, sizeof(struct in_addr));
++	    if (ap_jail.ip4 == NULL) {
++		ap_log_error(APLOG_MARK, APLOG_ALERT, server_conf,
++			"Unable to allocate memory for jail ip address");
++		exit(1);
++	    }
++	    ap_jail.ip4[0].s_addr = htonl(INADDR_LOOPBACK);
++	    ap_jail.ip4 = 1;
++	}
++#endif
++
 +	if (jail(&ap_jail) == -1) {
 +	    ap_log_error(APLOG_MARK, APLOG_ALERT, server_conf,
 +			"Unable to jail to %s", ap_jail.path);
@@ -246,7 +271,7 @@ diff -u -uwr src/main/http_main.c src/main/http_main.c
      /* 
       * Only try to switch if we're running as root
       * In case of Cygwin we have the special super-user named SYSTEM
-@@ -5448,6 +5503,12 @@
+@@ -5448,6 +5525,12 @@
  	ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, server_conf,
  		    "Accept mutex: %s (Default: %s)",
  		     amutex->name, ap_default_mutex_method());
@@ -259,9 +284,9 @@ diff -u -uwr src/main/http_main.c src/main/http_main.c
  	restart_pending = shutdown_pending = 0;
  
  	while (!restart_pending && !shutdown_pending) {
-diff -u -uwr src/main/http_request.c src/main/http_request.c
+diff -uwr src/main/http_request.c src/main/http_request.c
 --- src/main/http_request.c	2006-07-12 11:16:05.000000000 +0300
-+++ src/main/http_request.c	2009-04-16 23:17:16.000000000 +0300
++++ src/main/http_request.c	2009-05-06 23:53:00.000000000 +0300
 @@ -182,7 +182,7 @@
          /* Advance over trailing slashes ... NOT part of filename 
           * if file is not a UNC name (Win32 only).
