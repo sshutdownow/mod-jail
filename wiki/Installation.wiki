@@ -1,18 +1,37 @@
+#summary installation
 #labels Phase-Deploy
-#installation
+
+I offer two major options to make Apache run in jail prison: patch for Apache's source code and dynamic module. Using of the patch is prefered over original module. For your convenience there are ports skeletons for both patch and module. Port for module exists in FreeBSD's Ports Collection.
+
+Note: You must be logged in as root to install ports.
 
 = Details =
-===Installation instructions:===
+===Installation instructions for patched Apache:===
+
+Download port skeleton: {{{fetch http://mod-jail.googlecode.com/files/port-apache13-1.3.41_1.tgz}}}.
+
+Extract and decompress it: {{{tar -xzvf port-apache13-1.3.41_1.tgz}}}.
+
+Than build and install port: {{{cd apache13 && make all install clean}}}.
+
+Now we have Apache installed, to make run it in jail it is enough to add one string to httpd.conf: `JailDir "/usr/local/www"`. There are other configuration options coresponding for jail parameters: `JailAddress`, `JailHostname` and `JailSecurelevel`, their default values are suitable for most installations:
+{{{
+# IP address of jail prison
+JailAddress "127.0.0.1"
+# hostname for jail prison
+JailHostname "localhost"
+# securelevel(7) inside jail prison
+JailSecurelevel 3
+}}}
+
+Start apache: `apachectl start`. So, it should work now. Every apache's child is imprisoned in its own jail, you can see jail by `jls` command.
+
+===Installation instructions for module:===
  *====From packages:====
-`# pkg_add -r mod_jail`
- *====From ports:====
-`# cd /usr/ports/www/mod_jail && make all install clean`
- *====From source code:====
-Download source code, extract and decompress it: `tar -xzvf mod_jail-0.4.tar.gz`
-=====Building mod_jail=====
-just type `cd mod_jail && make`
-=====Install mod_jail:=====
-`make install` (as root)
+ `# pkg_add -r mod_jail`
+ *====From Ports Collection:====
+ `# cd /usr/ports/www/mod_jail && make all install clean`
+
 ====Apache:====
 Edit apache config, you may use _httpd.conf.add_ as example, if you are using apache 1.3 make shure that `AddModule mod_jail.so` is next line after `ClearModuleList`, for apache2 `LoadModule libexec/apache2/mod_jail2.so` is enough.
 {{{
