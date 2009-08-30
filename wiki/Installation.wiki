@@ -1,7 +1,7 @@
 #summary installation
 #labels Phase-Deploy,Featured
 
-I offer two major options to make Apache run in jail prison: patch for Apache's source code and dynamic module. Using of the patch is prefered over original module. For your convenience there are ports skeletons for both patch and module. Port for module exists in FreeBSD's Ports Collection.
+I offer two major options to make Apache run in jail prison: patch for Apache's source code and dynamic module. Using of the patch is preferred over original module. For your convenience there are ports skeletons for both patch and module. Port for module exists in FreeBSD's Ports Collection.
 
 Note: You must be logged in as root to install ports.
 
