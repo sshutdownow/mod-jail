@@ -16,15 +16,27 @@ Than build and install port: {{{cd apache13 && make all install clean}}}.
 
 Now we have Apache installed, to make run it in jail it is enough to add one string to httpd.conf: `JailDir "/usr/local/www"`. There are other configuration options coresponding for jail parameters: `JailAddress`, `JailHostname` and `JailSecurelevel`, their default values are suitable for most installations:
 {{{
+JailDir "/usr/local/www"
+# Default values
 # IP address of jail prison
-JailAddress "127.0.0.1"
+#JailAddress "127.0.0.1"
 # hostname for jail prison
-JailHostname "localhost"
+#JailHostname "localhost"
 # securelevel(7) inside jail prison
-JailSecurelevel 3
+#JailSecurelevel 3
 }}}
 
-Start apache: `apachectl start`. So, it should work now. Every apache's child is imprisoned in its own jail, you can see jail by `jls` command.
+Start apache: `apachectl start`. So, it should work now. Every apache's child is imprisoned in its own jail, you can see jails by `jls` command:
+{{{
+# jls
+   JID  IP Address      Hostname                      Path
+    13  127.0.0.1       localhost                     /usr/local/www
+    14  127.0.0.1       localhost                     /usr/local/www
+    15  127.0.0.1       localhost                     /usr/local/www
+    16  127.0.0.1       localhost                     /usr/local/www
+    17  127.0.0.1       localhost                     /usr/local/www
+    18  127.0.0.1       localhost                     /usr/local/www
+}}}
 
 ===Installation instructions for module:===
  *====From packages:====
