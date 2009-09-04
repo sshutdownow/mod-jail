@@ -40,14 +40,10 @@
 #include <sys/ipc.h>
 #endif
 
-#ifndef __FreeBSD__
-#error "This path for FreeBSD only!!!"
-#endif
-
+#if defined(__FreeBSD__)
 #include <osreldate.h>
-#if  !defined(__FreeBSD_version) || (__FreeBSD_version < 400000)
-#error "The jail() system call appeared in FreeBSD 4.0"
-#endif
+
+#if defined(__FreeBSD_version) && (__FreeBSD_version >= 400000)
 
 #include <sys/param.h>
 #include <sys/jail.h>
@@ -58,6 +54,11 @@
 #ifndef JAIL_API_VERSION
 #define JAIL_API_VERSION 0
 #endif
+
+#endif /* __FreeBSD_version */
+
+#endif /* __FreeBSD__ */
+
 
 typedef struct {
     uid_t uid;
@@ -84,8 +85,12 @@ typedef struct {
     uid_t user_id;
     gid_t group_id;
     int suexec_enabled;
+#if defined(JAIL_API_VERSION)
     struct jail jail;
     int jail_securelevel;
+#else
+    const char *chroot_dir;
+#endif
 } unixd_config_rec;
 AP_DECLARE_DATA extern unixd_config_rec unixd_config;
 
@@ -95,6 +100,7 @@ AP_DECLARE(const char *) unixd_set_user(cmd_parms *cmd, void *dummy,
                                         const char *arg);
 AP_DECLARE(const char *) unixd_set_group(cmd_parms *cmd, void *dummy, 
                                          const char *arg);
+#if defined(JAIL_API_VERSION)
 AP_DECLARE(const char *) unixd_set_jail_dir(cmd_parms *cmd, void *dummy, 
 					    const char *arg);
 AP_DECLARE(const char *) unixd_set_jail_hostname(cmd_parms *cmd, void *dummy, 
@@ -103,7 +109,10 @@ AP_DECLARE(const char *) unixd_set_jail_address(cmd_parms *cmd, void *dummy,
 					    const char *arg);
 AP_DECLARE(const char *) unixd_set_jail_securelevel(cmd_parms *cmd, void *dummy, 
 					    const char *arg);
-
+#else /* chroot */
+AP_DECLARE(const char *) unixd_set_chroot_dir(cmd_parms *cmd, void *dummy,
+					    const char *arg);
+#endif /* JAIL_API_VERSION */
 #if defined(RLIMIT_CPU) || defined(RLIMIT_DATA) || defined(RLIMIT_VMEM) || defined(RLIMIT_NPROC) || defined(RLIMIT_AS)
 AP_DECLARE(void) unixd_set_rlimit(cmd_parms *cmd, struct rlimit **plimit,
                            const char *arg, const char * arg2, int type);
@@ -130,6 +139,9 @@ AP_DECLARE(apr_status_t) unixd_accept(void **accepted, ap_listen_rec *lr, apr_po
 #define ap_os_killpg(x, y)      (kill (-(x), (y)))
 #endif /* HAVE_KILLPG */
 
+
+#if defined(JAIL_API_VERSION)
+
 #define UNIX_DAEMON_COMMANDS	\
 AP_INIT_TAKE1("User", unixd_set_user, NULL, RSRC_CONF, \
   "Effective user id for this server"), \
@@ -143,5 +155,17 @@ AP_INIT_TAKE1("JailAddress", unixd_set_jail_address, NULL, RSRC_CONF, \
   "The IP address of jail prison"), \
 AP_INIT_TAKE1("JailSecureLevel", unixd_set_jail_securelevel, NULL, RSRC_CONF, \
   "The securelevel inside jail prison")
+
+#else /* chroot */
+
+#define UNIX_DAEMON_COMMANDS	\
+AP_INIT_TAKE1("User", unixd_set_user, NULL, RSRC_CONF, \
+  "Effective user id for this server"), \
+AP_INIT_TAKE1("Group", unixd_set_group, NULL, RSRC_CONF, \
+  "Effective group id for this server"), \
+AP_INIT_TAKE1("ChrootDir", unixd_set_chroot_dir, NULL, RSRC_CONF, \
+  "The directory to chroot(2) into")
+
+#endif /* JAIL_API_VERSION */
 
 #endif
