@@ -1,5 +1,10 @@
 #labels Featured
 ==Changelog==
+===05 Sep 2009===
+{{{
+    Added jail and chroot patch against Apache 2.0.63: when compiles on FreeBSD jail(2) is used, for other unixes, for example, linux chroot(2) is used.
+}}}
+
 ===30 Aug 2009===
 {{{
     Added jail patch against Apache 2.2.13, both jail API versions 0 and 2 are supported.
