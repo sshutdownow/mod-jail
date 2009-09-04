@@ -117,7 +117,7 @@ AP_DECLARE(int) unixd_setup_child(void)
     if (set_group_privs()) {
 	return -1;
     }
-
+#if defined(JAIL_API_VERSION)
     if (NULL != unixd_config.jail.path) {
         if (geteuid()) {
             ap_log_error(APLOG_MARK, APLOG_ALERT, errno, NULL,
@@ -146,6 +146,30 @@ AP_DECLARE(int) unixd_setup_child(void)
     		             "Can't set kern.securelevel via sysctl()");
         }
     }
+#else /* chroot */
+    if (NULL != unixd_config.chroot_dir) {
+        if (geteuid()) {
+            ap_log_error(APLOG_MARK, APLOG_ALERT, errno, NULL,
+                         "Cannot chroot when not started as root");
+            return -1;
+        }
+        if (chdir(unixd_config.chroot_dir) != 0) {
+            ap_log_error(APLOG_MARK, APLOG_ALERT, errno, NULL,
+                         "Can't chdir to %s", unixd_config.chroot_dir);
+            return -1;
+        }
+        if (chroot(unixd_config.chroot_dir) != 0) {
+            ap_log_error(APLOG_MARK, APLOG_ALERT, errno, NULL,
+                         "Can't chroot to %s", unixd_config.chroot_dir);
+            return -1;
+        }
+        if (chdir("/") != 0) {
+            ap_log_error(APLOG_MARK, APLOG_ALERT, errno, NULL,
+                         "Can't chdir to new root");
+            return -1;
+        }
+    }
+#endif /* JAIL_API_VERSION */
 
 #ifdef MPE
     /* Only try to switch if we're running as MANAGER.SYS */
@@ -228,6 +252,7 @@ AP_DECLARE(const char *) unixd_set_group(cmd_parms *cmd, void *dummy,
 
     return NULL;
 }
+#if defined(JAIL_API_VERSION)
 AP_DECLARE(const char *) unixd_set_jail_dir(cmd_parms *cmd, void *dummy,
                                               const char *arg)
 {
@@ -267,7 +292,7 @@ AP_DECLARE(const char *) unixd_set_jail_address(cmd_parms *cmd, void *dummy,
 
 #if JAIL_API_VERSION == 2
     unixd_config.jail.ip4[0].s_addr = in.s_addr;
-#else
+#else /* JAIL_API_VERSION == 0 */
     unixd_config.jail.ip_number = ntohl(in.s_addr);
 #endif
     return NULL;
@@ -283,7 +308,22 @@ AP_DECLARE(const char *) unixd_set_jail_securelevel(cmd_parms *cmd, void *dummy,
     unixd_config.jail_securelevel = strtol(arg, 0, 10) & 0x03;
     return NULL;
 }
+#else /* chroot */
+AP_DECLARE(const char *) unixd_set_chroot_dir(cmd_parms *cmd, void *dummy,
+                                              const char *arg)
+{
+    const char *err = ap_check_cmd_context(cmd, GLOBAL_ONLY);
+    if (err != NULL) {
+        return err;
+    }
+    if (!ap_is_directory(cmd->pool, arg)) {
+        return "ChrootDir must be a valid directory";
+    }
 
+    unixd_config.chroot_dir = arg;
+    return NULL;
+}
+#endif /* JAIL_API_VERSION */
 AP_DECLARE(void) unixd_pre_config(apr_pool_t *ptemp)
 {
     apr_finfo_t wrapper;
@@ -292,6 +332,7 @@ AP_DECLARE(void) unixd_pre_config(apr_pool_t *ptemp)
     unixd_config.user_id = ap_uname2id(DEFAULT_USER);
     unixd_config.group_id = ap_gname2id(DEFAULT_GROUP);
 
+#if defined(JAIL_API_VERSION)
 #if JAIL_API_VERSION == 2
     unixd_config.jail.version = JAIL_API_VERSION;
     unixd_config.jail.path = NULL; /* none */
@@ -302,10 +343,13 @@ AP_DECLARE(void) unixd_pre_config(apr_pool_t *ptemp)
     unixd_config.jail.ip4 = apr_pcalloc(ptemp, sizeof(struct in_addr));
     unixd_config.jail.ip4[0].s_addr = htonl(INADDR_LOOPBACK);
     unixd_config.jail.ip6 = NULL;
-#else
+#else /* JAIL_API_VERSION == 0 */
     unixd_config.jail = { .version = 0, .path = NULL, .hostname = "localhost", .ip_number = INADDR_LOOPBACK };
 #endif
     unixd_config.jail_securelevel = 3;
+#else /* chroot */
+    unixd_config.chroot_dir = NULL; /* none */
+#endif /* JAIL_API_VERSION */
 
     /* Check for suexec */
     unixd_config.suexec_enabled = 0;
@@ -690,3 +734,4 @@ AP_DECLARE(apr_status_t) unixd_accept(void **accepted, ap_listen_rec *lr,
     }
     return status;
 }
+
