@@ -1,7 +1,7 @@
 Only in .: apache.diff
 diff -rwubB ./conf/httpd.conf-dist /home/igor/programming/C/apache/apache_1.3.41/conf/httpd.conf-dist
---- ./conf/httpd.conf-dist	2009-09-19 16:12:33.000000000 +0300
-+++ /home/igor/programming/C/apache/apache_1.3.41/conf/httpd.conf-dist	2009-09-19 16:08:21.000000000 +0300
+--- ./conf/httpd.conf-dist	2009-09-19 16:34:05.000000000 +0300
++++ /home/igor/programming/C/apache/apache_1.3.41/conf/httpd.conf-dist	2009-09-19 16:31:27.000000000 +0300
 @@ -59,6 +59,28 @@
  ServerRoot "@@ServerRoot@@"
  
@@ -33,7 +33,7 @@ diff -rwubB ./conf/httpd.conf-dist /home/igor/programming/C/apache/apache_1.3.41
  # USE_FLOCK_SERIALIZED_ACCEPT. This directive should normally be left at
 diff -rwubB ./src/include/ap_config.h /home/igor/programming/C/apache/apache_1.3.41/src/include/ap_config.h
 --- ./src/include/ap_config.h	2006-07-12 11:16:05.000000000 +0300
-+++ /home/igor/programming/C/apache/apache_1.3.41/src/include/ap_config.h	2009-09-19 16:10:48.000000000 +0300
++++ /home/igor/programming/C/apache/apache_1.3.41/src/include/ap_config.h	2009-09-19 16:31:27.000000000 +0300
 @@ -1455,6 +1455,25 @@
  #define ap_wait_t int
  #endif
@@ -62,7 +62,7 @@ diff -rwubB ./src/include/ap_config.h /home/igor/programming/C/apache/apache_1.3
  #endif
 diff -rwubB ./src/include/http_conf_globals.h /home/igor/programming/C/apache/apache_1.3.41/src/include/http_conf_globals.h
 --- ./src/include/http_conf_globals.h	2006-07-12 11:16:05.000000000 +0300
-+++ /home/igor/programming/C/apache/apache_1.3.41/src/include/http_conf_globals.h	2009-09-19 16:08:21.000000000 +0300
++++ /home/igor/programming/C/apache/apache_1.3.41/src/include/http_conf_globals.h	2009-09-19 16:31:27.000000000 +0300
 @@ -76,6 +76,13 @@
  extern API_VAR_EXPORT char ap_server_root[MAX_STRING_LEN];
  extern API_VAR_EXPORT char ap_server_confname[MAX_STRING_LEN];
@@ -79,7 +79,7 @@ diff -rwubB ./src/include/http_conf_globals.h /home/igor/programming/C/apache/ap
  extern API_VAR_EXPORT array_header *ap_server_post_read_config;
 diff -rwubB ./src/main/http_core.c /home/igor/programming/C/apache/apache_1.3.41/src/main/http_core.c
 --- ./src/main/http_core.c	2006-07-12 11:16:05.000000000 +0300
-+++ /home/igor/programming/C/apache/apache_1.3.41/src/main/http_core.c	2009-09-19 16:11:24.000000000 +0300
++++ /home/igor/programming/C/apache/apache_1.3.41/src/main/http_core.c	2009-09-19 16:32:50.000000000 +0300
 @@ -1236,9 +1236,13 @@
      if (err != NULL) {
          return err;
@@ -96,7 +96,7 @@ diff -rwubB ./src/main/http_core.c /home/igor/programming/C/apache/apache_1.3.41
  	if (cmd->server->is_virtual) {
  	    fprintf(stderr, "Warning: DocumentRoot [%s] does not exist\n",
  		    arg);
-@@ -2237,6 +2241,90 @@
+@@ -2237,6 +2241,86 @@
      return NULL;
  }
  
@@ -141,10 +141,6 @@ diff -rwubB ./src/main/http_core.c /home/igor/programming/C/apache/apache_1.3.41
 +	return "could not make sense of jail ip address";
 +    }
 +#if JAIL_API_VERSION == 2
-+    if (ap_jail.ip4s == 0 && ap_jail.ip4 == NULL) {
-+	ap_jail.ip4 = ap_pcalloc(cmd->pool, sizeof(struct in_addr));
-+    }
-+    ap_jail.ip4s = 1;
 +    ap_jail.ip4[0].s_addr = in.s_addr;
 +#else /* JAIL_API_VERSION == 0 */
 +    ap_jail.ip_number = ntohl(in.s_addr);
@@ -187,7 +183,7 @@ diff -rwubB ./src/main/http_core.c /home/igor/programming/C/apache/apache_1.3.41
  static const char *set_timeout(cmd_parms *cmd, void *dummy, char *arg)
  {
      const char *err = ap_check_cmd_context(cmd, NOT_IN_DIR_LOC_FILE|NOT_IN_LIMIT);
-@@ -3539,7 +3627,19 @@
+@@ -3539,7 +3623,19 @@
    TAKE1, "The name of the default charset to add to any Content-Type without one or 'Off' to disable" },
  
  /* Old resource config file commands */
@@ -210,7 +206,7 @@ diff -rwubB ./src/main/http_core.c /home/igor/programming/C/apache/apache_1.3.41
  { "DocumentRoot", set_document_root, NULL, RSRC_CONF, TAKE1,
 diff -rwubB ./src/main/http_main.c /home/igor/programming/C/apache/apache_1.3.41/src/main/http_main.c
 --- ./src/main/http_main.c	2007-11-15 23:31:15.000000000 +0200
-+++ /home/igor/programming/C/apache/apache_1.3.41/src/main/http_main.c	2009-09-19 16:11:54.000000000 +0300
++++ /home/igor/programming/C/apache/apache_1.3.41/src/main/http_main.c	2009-09-19 16:31:27.000000000 +0300
 @@ -270,7 +270,28 @@
   */
  listen_rec *ap_listeners=NULL;
@@ -336,9 +332,10 @@ diff -rwubB ./src/main/http_main.c /home/igor/programming/C/apache/apache_1.3.41
  	restart_pending = shutdown_pending = 0;
  
  	while (!restart_pending && !shutdown_pending) {
+Only in /home/igor/programming/C/apache/apache_1.3.41/src/main: http_main.c.orig
 diff -rwubB ./src/main/http_request.c /home/igor/programming/C/apache/apache_1.3.41/src/main/http_request.c
 --- ./src/main/http_request.c	2006-07-12 11:16:05.000000000 +0300
-+++ /home/igor/programming/C/apache/apache_1.3.41/src/main/http_request.c	2009-09-19 16:08:21.000000000 +0300
++++ /home/igor/programming/C/apache/apache_1.3.41/src/main/http_request.c	2009-09-19 16:31:27.000000000 +0300
 @@ -182,7 +182,7 @@
          /* Advance over trailing slashes ... NOT part of filename 
           * if file is not a UNC name (Win32 only).
