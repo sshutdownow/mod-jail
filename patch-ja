@@ -1,69 +1,86 @@
-diff -uwr conf/httpd.conf-dist conf/httpd.conf-dist
---- conf/httpd.conf-dist	2009-05-07 20:34:47.000000000 +0300
-+++ conf/httpd.conf-dist	2009-05-06 23:53:00.000000000 +0300
-@@ -59,6 +59,21 @@
+Only in .: apache.diff
+diff -rwubB ./conf/httpd.conf-dist /home/igor/programming/C/apache/apache_1.3.41/conf/httpd.conf-dist
+--- ./conf/httpd.conf-dist	2009-09-19 16:12:33.000000000 +0300
++++ /home/igor/programming/C/apache/apache_1.3.41/conf/httpd.conf-dist	2009-09-19 16:08:21.000000000 +0300
+@@ -59,6 +59,28 @@
  ServerRoot "@@ServerRoot@@"
  
  #
-+# JailDir: The directory to jail(2) to
++# Using jail(2) for FreeBSD, chroot(2) for other unixes
++#
++# ChrootDir - the directory to chroot(2) to and accordingly
++# JailDir is the directory to jail(2) to
 +#
 +# NOTE: When using this all directory/file references in DocumentRoot,
-+# <Directory> and <Files> should be relative to this JailDir!
-+# JailDir 
++# <Directory> and <Files> should be relative to this JailDir or ChrooDir!
++#
++#ChrootDir "@@ServerRoot@@/htdocs"
 +#
 +#JailDir "@@ServerRoot@@/htdocs"
++# Default values for jail settings
 +# IP address of jail prison
 +#JailAddress "127.0.0.1"
 +# hostname for jail prison
 +#JailHostname "localhost"
 +# securelevel(7) inside jail prison
 +#JailSecurelevel 3
++#
++#
 +
 +#
  # The LockFile directive sets the path to the lockfile used when Apache
  # is compiled with either USE_FCNTL_SERIALIZED_ACCEPT or
  # USE_FLOCK_SERIALIZED_ACCEPT. This directive should normally be left at
-diff -uwr /src/include/http_conf_globals.h src/include/http_conf_globals.h
---- /src/include/http_conf_globals.h	2006-07-12 11:16:05.000000000 +0300
-+++ src/include/http_conf_globals.h	2009-05-06 23:53:00.000000000 +0300
-@@ -75,7 +75,13 @@
- 
- extern API_VAR_EXPORT char ap_server_root[MAX_STRING_LEN];
- extern API_VAR_EXPORT char ap_server_confname[MAX_STRING_LEN];
--
-+#if defined(__FreeBSD__)
-+#include <osreldate.h>
-+#if  defined(__FreeBSD_version) && (__FreeBSD_version > 400000)
-+extern API_VAR_EXPORT int  ap_jail_securelevel;
-+extern API_VAR_EXPORT struct jail ap_jail;
-+#endif
-+#endif
- /* for -C, -c and -D switches */
- extern API_VAR_EXPORT array_header *ap_server_pre_read_config;
- extern API_VAR_EXPORT array_header *ap_server_post_read_config;
-Only in src/include: http_conf_globals.h.orig
-diff -uwr src/main/http_core.c src/main/http_core.c
---- src/main/http_core.c	2006-07-12 11:16:05.000000000 +0300
-+++ src/main/http_core.c	2009-05-07 20:31:00.000000000 +0300
-@@ -54,6 +54,17 @@
- #define MMAP_LIMIT              (4*1024*1024)
+diff -rwubB ./src/include/ap_config.h /home/igor/programming/C/apache/apache_1.3.41/src/include/ap_config.h
+--- ./src/include/ap_config.h	2006-07-12 11:16:05.000000000 +0300
++++ /home/igor/programming/C/apache/apache_1.3.41/src/include/ap_config.h	2009-09-19 16:10:48.000000000 +0300
+@@ -1455,6 +1455,25 @@
+ #define ap_wait_t int
  #endif
  
 +#if defined(__FreeBSD__)
 +#include <osreldate.h>
-+#if  defined(__FreeBSD_version) && (__FreeBSD_version > 400000)
++
++#if defined(__FreeBSD_version) && (__FreeBSD_version > 400000)
 +#include <sys/param.h>
 +#include <sys/jail.h>
 +#include <sys/sysctl.h>
 +#include <netinet/in.h>
 +#include <arpa/inet.h>
-+#endif
++
++#if !defined(JAIL_API_VERSION)
++#define JAIL_API_VERSION 0
 +#endif
 +
- typedef struct {
-     /* Custom response strings registered via ap_custom_response(),
-      * or NULL; check per-dir config if nothing found here
-@@ -1236,9 +1247,13 @@
++#endif /* __FreeBSD_version */
++
++#endif /* __FreeBSD__ */
++
++
+ #ifdef __cplusplus
+ }
+ #endif
+diff -rwubB ./src/include/http_conf_globals.h /home/igor/programming/C/apache/apache_1.3.41/src/include/http_conf_globals.h
+--- ./src/include/http_conf_globals.h	2006-07-12 11:16:05.000000000 +0300
++++ /home/igor/programming/C/apache/apache_1.3.41/src/include/http_conf_globals.h	2009-09-19 16:08:21.000000000 +0300
+@@ -76,6 +76,13 @@
+ extern API_VAR_EXPORT char ap_server_root[MAX_STRING_LEN];
+ extern API_VAR_EXPORT char ap_server_confname[MAX_STRING_LEN];
+ 
++#if defined(JAIL_API_VERSION)
++extern API_VAR_EXPORT int  ap_jail_securelevel;
++extern API_VAR_EXPORT struct jail ap_jail;
++#else /* chroot */
++extern API_VAR_EXPORT char *ap_chroot;
++#endif
++
+ /* for -C, -c and -D switches */
+ extern API_VAR_EXPORT array_header *ap_server_pre_read_config;
+ extern API_VAR_EXPORT array_header *ap_server_post_read_config;
+diff -rwubB ./src/main/http_core.c /home/igor/programming/C/apache/apache_1.3.41/src/main/http_core.c
+--- ./src/main/http_core.c	2006-07-12 11:16:05.000000000 +0300
++++ /home/igor/programming/C/apache/apache_1.3.41/src/main/http_core.c	2009-09-19 16:11:24.000000000 +0300
+@@ -1236,9 +1236,13 @@
      if (err != NULL) {
          return err;
      }
@@ -71,19 +88,19 @@ diff -uwr src/main/http_core.c src/main/http_core.c
      arg = ap_os_canonical_filename(cmd->pool, arg);
 -    if (ap_configtestonly && ap_docrootcheck && !ap_is_directory(arg)) {
 +    if (ap_configtestonly && ap_docrootcheck &&
-+#if defined(__FreeBSD_version) && (__FreeBSD_version > 400000)
++#if defined(JAIL_API_VERSION)
 +    !ap_is_directory( (ap_jail.path != NULL && ap_jail.path[0] != '\0')? ap_pstrcat(cmd->pool, ap_jail.path, "/", arg, NULL) : arg) ) {
-+#else 
-+    !ap_is_directory(arg)) {
++#else /* chroot */
++    !ap_is_directory( (ap_chroot != NULL && ap_chroot[0] != '\0')? ap_pstrcat(cmd->pool, ap_chroot, "/", arg, NULL) : arg) ) {
 +#endif
  	if (cmd->server->is_virtual) {
  	    fprintf(stderr, "Warning: DocumentRoot [%s] does not exist\n",
  		    arg);
-@@ -2237,6 +2252,70 @@
+@@ -2237,6 +2241,90 @@
      return NULL;
  }
  
-+#if defined(__FreeBSD_version) && (__FreeBSD_version > 400000)
++#if defined(JAIL_API_VERSION)
 +static const char *set_jail_dir(cmd_parms *cmd, void *dummy, char *arg) 
 +{
 +    const char *err = ap_check_cmd_context(cmd, GLOBAL_ONLY);
@@ -123,13 +140,13 @@ diff -uwr src/main/http_core.c src/main/http_core.c
 +    if (!inet_aton(arg, &in)) {
 +	return "could not make sense of jail ip address";
 +    }
-+#if defined(JAIL_API_VERSION)
++#if JAIL_API_VERSION == 2
 +    if (ap_jail.ip4s == 0 && ap_jail.ip4 == NULL) {
 +	ap_jail.ip4 = ap_pcalloc(cmd->pool, sizeof(struct in_addr));
 +    }
 +    ap_jail.ip4s = 1;
 +    ap_jail.ip4[0].s_addr = in.s_addr;
-+#else
++#else /* JAIL_API_VERSION == 0 */
 +    ap_jail.ip_number = ntohl(in.s_addr);
 +#endif
 +    return NULL;
@@ -145,17 +162,37 @@ diff -uwr src/main/http_core.c src/main/http_core.c
 +    ap_jail_securelevel = strtol(arg, 0, 10) & 0x03;
 +    return NULL;
 +}
-+#endif /* defined(__FreeBSD_version) */
++
++#else /* chroot */
++
++static const char *set_chroot_dir(cmd_parms *cmd, void *dummy, char *arg) 
++{
++    const char *err = ap_check_cmd_context(cmd, GLOBAL_ONLY);
++
++    if (err != NULL) {
++        return err;
++    }
++
++    arg = ap_os_canonical_filename(cmd->pool, arg);
++
++    if (!ap_is_directory(arg)) {
++        return "ChrootDir must be a valid directory";
++    }
++    ap_chroot = arg;
++    return NULL;
++}
++
++#endif /* JAIL_API_VERSION */
 +
  static const char *set_timeout(cmd_parms *cmd, void *dummy, char *arg)
  {
      const char *err = ap_check_cmd_context(cmd, NOT_IN_DIR_LOC_FILE|NOT_IN_LIMIT);
-@@ -3539,7 +3618,16 @@
+@@ -3539,7 +3627,19 @@
    TAKE1, "The name of the default charset to add to any Content-Type without one or 'Off' to disable" },
  
  /* Old resource config file commands */
 -  
-+#if  defined(__FreeBSD_version) && (__FreeBSD_version > 400000)
++#if  defined(JAIL_API_VERSION)
 +{ "JailDir", set_jail_dir, NULL, RSRC_CONF, TAKE1,
 +  "The directory to jail(2) into" },
 +{ "JailHostname", set_jail_hostname, NULL, RSRC_CONF, TAKE1,
@@ -164,62 +201,52 @@ diff -uwr src/main/http_core.c src/main/http_core.c
 +  "The IP address of jail prison" },
 +{ "JailSecureLevel", set_jail_securelevel, NULL, RSRC_CONF, TAKE1,
 +  "The securelevel inside jail prison" },
-+#endif
++#else /* chroot */
++{ "ChrootDir", set_chroot_dir, NULL, RSRC_CONF, TAKE1,
++  "The directory to chroot(2) into" },
++#endif /* JAIL_API_VERSION */
  { "AccessFileName", set_access_name, NULL, RSRC_CONF, RAW_ARGS,
    "Name(s) of per-directory config files (default: .htaccess)" },
  { "DocumentRoot", set_document_root, NULL, RSRC_CONF, TAKE1,
-diff -uwr src/main/http_main.c src/main/http_main.c
---- src/main/http_main.c	2007-11-15 23:31:15.000000000 +0200
-+++ src/main/http_main.c	2009-05-07 20:33:05.000000000 +0300
-@@ -241,6 +241,17 @@
- #endif
- #endif
- 
-+#if defined(__FreeBSD__)
-+#include <osreldate.h>
-+#if  defined(__FreeBSD_version) && (__FreeBSD_version > 400000)
-+#include <sys/param.h>
-+#include <sys/jail.h>
-+#include <sys/sysctl.h>
-+#include <netinet/in.h>
-+#include <arpa/inet.h>
-+#endif
-+#endif
-+
- int ap_dump_settings = 0;
- API_VAR_EXPORT int ap_extended_status = 0;
- 
-@@ -270,7 +281,23 @@
+diff -rwubB ./src/main/http_main.c /home/igor/programming/C/apache/apache_1.3.41/src/main/http_main.c
+--- ./src/main/http_main.c	2007-11-15 23:31:15.000000000 +0200
++++ /home/igor/programming/C/apache/apache_1.3.41/src/main/http_main.c	2009-09-19 16:11:54.000000000 +0300
+@@ -270,7 +270,28 @@
   */
  listen_rec *ap_listeners=NULL;
  static listen_rec *head_listener;
 -
-+#if defined(__FreeBSD_version) && (__FreeBSD_version > 400000)
 +#if defined(JAIL_API_VERSION)
++#if JAIL_API_VERSION == 2
 +API_VAR_EXPORT struct jail ap_jail = {
 +	.version = JAIL_API_VERSION,
 +	.path = NULL,
 +	.hostname = "localhost",
 +	.jailname = NULL,
-+	.ip4s = 0,
++	.ip4s = 1,
 +	.ip6s = 0,
-+	.ip4 = NULL,
++	.ip4 = &(struct in_addr){ .s_addr = 0 },
 +	.ip6 = NULL };
++#elif JAIL_API_VERSION == 0
++API_VAR_EXPORT struct jail ap_jail = {
++	.version = JAIL_API_VERSION,
++	.path = NULL,
++	.hostname = "localhost",
++	.ip_number = INADDR_LOOPBACK };
++#endif
 +API_VAR_EXPORT int  ap_jail_securelevel = 3;
-+#else
-+API_VAR_EXPORT struct jail ap_jail = { .version = 0, .path = NULL, .hostname = "localhost", .ip_number = INADDR_LOOPBACK };
-+API_VAR_EXPORT int  ap_jail_securelevel = 3;
++#else /* chroot */
++API_VAR_EXPORT char *ap_chroot = NULL;
 +#endif /* JAIL_API_VERSION */
-+#endif /* __FreeBSD_version */
  API_VAR_EXPORT char ap_server_root[MAX_STRING_LEN]="";
  API_VAR_EXPORT char ap_server_confname[MAX_STRING_LEN]="";
  API_VAR_EXPORT char ap_coredump_dir[MAX_STRING_LEN]="";
-@@ -4483,6 +4510,56 @@
+@@ -4483,6 +4504,76 @@
      }
      GETUSERMODE();
  #else
 +
-+#if defined(__FreeBSD_version) && (__FreeBSD_version > 400000)
++#if defined(JAIL_API_VERSION)
 +    if (ap_jail.path != NULL && ap_jail.path[0] != '\0') {
 +	if (!ap_standalone) {
 +	    ap_log_error(APLOG_MARK, APLOG_ALERT, server_conf,
@@ -231,31 +258,22 @@ diff -uwr src/main/http_main.c src/main/http_main.c
 +			"Can't jail when not started as root");
 +	    exit(1);
 +	}
-+	if (chdir(ap_jail.path)) {
++	if (chdir(ap_jail.path) == -1) {
 +	    ap_log_error(APLOG_MARK, APLOG_ALERT, server_conf,
 +			"Unable to chdir to %s", ap_jail.path);
 +	    exit(1);
 +	}
-+	
-+#if defined(JAIL_API_VERSION)
-+	if (ap_jail.ip4s == 0 && ap_jail.ip4 == NULL) {
-+	    ap_jail.ip4 = ap_pcalloc(pchild, sizeof(struct in_addr));
-+	    if (ap_jail.ip4 == NULL) {
-+		ap_log_error(APLOG_MARK, APLOG_ALERT, server_conf,
-+			"Unable to allocate memory for jail ip address");
-+		exit(1);
-+	    }
++#if JAIL_API_VERSION == 2
++	if (ap_jail.ip4[0].s_addr == 0) {
 +	    ap_jail.ip4[0].s_addr = htonl(INADDR_LOOPBACK);
-+	    ap_jail.ip4 = 1;
 +	}
 +#endif
-+
 +	if (jail(&ap_jail) == -1) {
 +	    ap_log_error(APLOG_MARK, APLOG_ALERT, server_conf,
 +			"Unable to jail to %s", ap_jail.path);
 +	    exit(1);
 +	}
-+	if (chdir("/") != 0) {
++	if (chdir("/") == -1) {
 +	    ap_log_error(APLOG_MARK, APLOG_ALERT, server_conf,
 +			"Can't chdir to new root");
 +	    exit(1);
@@ -267,26 +285,60 @@ diff -uwr src/main/http_main.c src/main/http_main.c
 +			    "Can't set kern.securelevel via sysctl()");
 +	}
 +    }
-+#endif
++#else /* chroot */
++    if (ap_chroot != NULL && ap_chroot[0] != '\0') {
++	if (!ap_standalone) {
++	    ap_log_error(APLOG_MARK, APLOG_ALERT, server_conf,
++			"Can't chroot when not in standalone mode");
++	    exit(1);
++	}
++	if (geteuid()) {
++	    ap_log_error(APLOG_MARK, APLOG_ALERT, server_conf,
++			"Can't chroot when not started as root");
++	    exit(1);
++	}
++	if (chdir(ap_chroot) == -1) {
++	    ap_log_error(APLOG_MARK, APLOG_ALERT, server_conf,
++			"Unable to chdir to %s", ap_chroot);
++	    exit(1);
++	}
++	if (chroot(ap_chroot) == -1) {
++	    ap_log_error(APLOG_MARK, APLOG_ALERT, server_conf,
++			"Unable to chroot to %s", ap_chroot);
++	    exit(1);
++	}
++	if (chdir("/") == -1) {
++	    ap_log_error(APLOG_MARK, APLOG_ALERT, server_conf,
++			"Can't chdir to new root");
++	    exit(1);
++	}
++    }
++#endif /* JAIL_API_VERSION */
++
      /* 
       * Only try to switch if we're running as root
       * In case of Cygwin we have the special super-user named SYSTEM
-@@ -5448,6 +5525,12 @@
+@@ -5448,6 +5539,17 @@
  	ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, server_conf,
  		    "Accept mutex: %s (Default: %s)",
  		     amutex->name, ap_default_mutex_method());
-+#if defined(__FreeBSD_version) && (__FreeBSD_version > 400000)
++#if defined(JAIL_API_VERSION)
 +	if (ap_jail.path != NULL && ap_jail.path[0] != '\0') {
 +	    ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, server_conf,
 +			 "Jail directory: %s", ap_jail.path);
++	}
++#else /* chroot */
++	if (ap_chroot != NULL && ap_chroot[0] != '\0') {
++	    ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, server_conf,
++			 "Chroot directory: %s", ap_chroot);
 +	}
 +#endif
  	restart_pending = shutdown_pending = 0;
  
  	while (!restart_pending && !shutdown_pending) {
-diff -uwr src/main/http_request.c src/main/http_request.c
---- src/main/http_request.c	2006-07-12 11:16:05.000000000 +0300
-+++ src/main/http_request.c	2009-05-06 23:53:00.000000000 +0300
+diff -rwubB ./src/main/http_request.c /home/igor/programming/C/apache/apache_1.3.41/src/main/http_request.c
+--- ./src/main/http_request.c	2006-07-12 11:16:05.000000000 +0300
++++ /home/igor/programming/C/apache/apache_1.3.41/src/main/http_request.c	2009-09-19 16:08:21.000000000 +0300
 @@ -182,7 +182,7 @@
          /* Advance over trailing slashes ... NOT part of filename 
           * if file is not a UNC name (Win32 only).
