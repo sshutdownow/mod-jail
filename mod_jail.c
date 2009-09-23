@@ -521,5 +521,5 @@ module AP_MODULE_DECLARE_DATA jail_module = {
 };
 
 #else
-#error "Only Apache 1.3 and 2.0 are supported"
+#error "Only Apache 1.3, 2.0 and 2.2 are supported"
 #endif
