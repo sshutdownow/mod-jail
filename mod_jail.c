@@ -142,9 +142,12 @@ static void jail_init(server_rec *s,
 static void *jail_server_config(pool *p, server_rec *s __unused)
 {
     p_jail_cfg_t cfg = (p_jail_cfg_t) ap_pcalloc(p, sizeof(jail_cfg_t));
-    struct in_addr *p_addr = ap_pcalloc(cmd->pool, sizeof(struct in_addr));
+    struct in_addr *p_addr = NULL;
 
-    addr->s_addr = htonl(INADDR_LOOPBACK);
+    if (cfg == NULL) {
+	return NULL;
+    }
+
 #if JAIL_API_VERSION == 0
     cfg->jail = {
 	.version = JAIL_API_VERSION,
@@ -152,6 +155,11 @@ static void *jail_server_config(pool *p, server_rec *s __unused)
 	.hostname = "localhost",
 	.ip_number = INADDR_LOOPBACK };
 #elif JAIL_API_VERSION == 2
+    p_addr = ap_pcalloc(cmd->pool, sizeof(struct in_addr));
+    if (p_addr == NULL) {
+	return NULL;
+    }
+    p_addr->s_addr = htonl(INADDR_LOOPBACK);
     cfg->jail = {
 	.version = JAIL_API_VERSION,
 	.path = NULL,
