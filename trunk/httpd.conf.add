@@ -14,7 +14,8 @@ AddModule mod_jail.c
 
 <IfModule mod_jail.c>
     jail_rootdir            "/usr/local/www"
-    jail_hostname           "www.my.net"
-    jail_address            192.168.0.1
-    jail_scrlevel           3
+# Default values
+#    jail_hostname           "localhost"
+#    jail_address            127.0.0.1
+#    jail_scrlevel           3
 </IfModule>
