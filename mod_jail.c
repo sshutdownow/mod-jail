@@ -85,7 +85,7 @@ static void jail_init(server_rec *s,
     char *env = getenv("MOD_JAIL_INITIALIZED");
 #endif
     if (geteuid()) {
-	ap_log_error(APLOG_MARK, APLOG_ALERT, server_conf,
+	ap_log_error(APLOG_MARK, APLOG_ALERT, s,
 		    "mod_jail can't jail when not started as root.");
 	return;
     }
@@ -149,18 +149,18 @@ static void *jail_server_config(pool *p, server_rec *s __unused)
     }
 
 #if JAIL_API_VERSION == 0
-    cfg->jail = {
+    cfg->jail = (struct jail) {
 	.version = JAIL_API_VERSION,
 	.path = NULL,
 	.hostname = "localhost",
 	.ip_number = INADDR_LOOPBACK };
 #elif JAIL_API_VERSION == 2
-    p_addr = ap_pcalloc(cmd->pool, sizeof(struct in_addr));
+    p_addr = ap_pcalloc(p, sizeof(struct in_addr));
     if (p_addr == NULL) {
 	return NULL;
     }
     p_addr->s_addr = htonl(INADDR_LOOPBACK);
-    cfg->jail = {
+    cfg->jail = (struct jail) {
 	.version = JAIL_API_VERSION,
 	.path = NULL,
 	.hostname = "localhost",
@@ -315,13 +315,11 @@ static int jail_init(apr_pool_t *p __unused, apr_pool_t *plog __unused, apr_pool
                      "mod_jail jail's root directory is not defined");
         return !OK;
     }
-
     if (!ap_is_directory(ptemp, cfg->jail.path)) {
         ap_log_error(APLOG_MARK, APLOG_NOERRNO | APLOG_ERR, 0, s,
                      "mod_jail jail's root directory doesn't exist.");
         return !OK;
     }
-
     if (!cfg->jail.hostname) {
         ap_log_error(APLOG_MARK, APLOG_NOERRNO | APLOG_ERR, 0, s,
                      "mod_jail jail's hostname is not defined.");
@@ -336,37 +334,32 @@ static int jail_init(apr_pool_t *p __unused, apr_pool_t *plog __unused, apr_pool
         apr_pool_userdata_set(jail_ctx, JAIL_CTX, apr_pool_cleanup_null, s->process->pool);
     } else if (jail_ctx->is_jailed++ == 0) {
 	if (geteuid()) {
-	    ap_log_error(APLOG_MARK, APLOG_ALERT, server_conf,
+	    ap_log_error(APLOG_MARK, APLOG_ALERT, 0, s,
 			"mod_jail can't jail when not started as root.");
 	    return;
 	}
-	
 	if (chdir(cfg->jail.path) == -1) {
-	    ap_log_error(APLOG_MARK, APLOG_ERR, s,
+	    ap_log_error(APLOG_MARK, APLOG_ERR, 0, s,
     		     "mod_jail unable to chdir to %s.", cfg->jail.path);
     	    return;
 	}
-
         if (jail(&cfg->jail) == -1) {
             ap_log_error(APLOG_MARK, APLOG_ERR, 0, s,
                          "mod_jail call jail() failed.");
             return !OK;
         }
-
         if (chdir("/") == -1) {
             ap_log_error(APLOG_MARK, APLOG_ERR, 0, s,
                          "mod_jail call chdir() failed.");
             return !OK;
         }
-
         if (cfg->jail_scrlevel > 0) {
 #if 1
-            if (sysctl((int[]){
-            CTL_KERN, KERN_SECURELVL }, 2, 0, 0,
-        &cfg->jail_scrlevel, sizeof(cfg->jail_scrlevel)) == -1) {
+            if (sysctl((int[]){ CTL_KERN, KERN_SECURELVL }, 2, 0, 0,
+        		&cfg->jail_scrlevel, sizeof(cfg->jail_scrlevel)) == -1) {
 #else
-if (sysctlbyname("kern.securelevel", 0, 0,
-                 &cfg->jail_scrlevel, sizeof(cfg->jail_scrlevel)) == -1) {
+	    if (sysctlbyname("kern.securelevel", 0, 0,
+			&cfg->jail_scrlevel, sizeof(cfg->jail_scrlevel)) == -1) {
 #endif
                 ap_log_error(APLOG_MARK, APLOG_ERR, 0, s,
                              "mod_jail call sysctl() to set up kern.securelevel failed.");
@@ -383,23 +376,23 @@ static void *jail_server_config(apr_pool_t *p, server_rec *s __unused)
     p_jail_cfg_t cfg = (p_jail_cfg_t) apr_pcalloc(p, sizeof(jail_cfg_t));
     struct in_addr *p_addr = NULL;
 
-    if (!cfg) {
+    if (cfg == NULL) {
         return NULL;
     }
 
 #if JAIL_API_VERSION == 0
-    cfg->jail = {
+    cfg->jail = (struct jail) {
 	.version = JAIL_API_VERSION,
 	.path = NULL,
 	.hostname = "localhost",
 	.ip_number = INADDR_LOOPBACK };
 #elif JAIL_API_VERSION == 2
     p_addr = apr_pcalloc(p, sizeof(struct in_addr));
-    if (!p_addr) {
+    if (p_addr == NULL) {
         return NULL;
     }
     addr->s_addr = htonl(INADDR_LOOPBACK);
-    cfg->jail = {
+    cfg->jail = (struct jail) {
 	.version = JAIL_API_VERSION,
 	.path = NULL,
 	.hostname = "localhost",
