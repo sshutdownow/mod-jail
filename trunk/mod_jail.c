@@ -99,11 +99,6 @@ static void jail_init(server_rec *s,
     		     "mod_jail jail dir is not set.");
     	return;
     }
-    if (chdir(cfg->jail.path) == -1) {
-	ap_log_error(APLOG_MARK, APLOG_ERR, s,
-    		     "mod_jail unable to chdir to %s.", cfg->jail.path);
-    	return;
-    }
 #ifdef EAPI
     if (jail_ctx == NULL) {
         jail_ctx = ap_pcalloc(pool, sizeof(jail_ctx_t));
@@ -115,6 +110,11 @@ static void jail_init(server_rec *s,
     } else if (*env == 0) {
         setenv("MOD_JAIL_INITIALIZED", "YES", 1); /* visible for apache's children */
 #endif
+	if (chdir(cfg->jail.path) == -1) {
+	    ap_log_error(APLOG_MARK, APLOG_ERR, s,
+    		        "mod_jail unable to chdir to %s.", cfg->jail.path);
+    	    return;
+	}
         if (jail(&cfg->jail) == -1) {
             ap_log_error(APLOG_MARK, APLOG_ERR, s,
                          "mod_jail call jail() failed.");
