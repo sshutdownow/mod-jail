@@ -40,6 +40,10 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
+#if !defined(JAIL_API_VERSION)
+#define JAIL_API_VERSION 0
+#endif
+
 #define JAIL_CTX "global::jail_module_ctx"
 
 static const char __unused cvsid[] = "$Id$";
@@ -80,16 +84,26 @@ static void jail_init(server_rec *s,
 #else
     char *env = getenv("MOD_JAIL_INITIALIZED");
 #endif
-
-    if (!cfg->jail.path ||
-            !ap_is_directory(cfg->jail.path) ||
-            !cfg->jail.hostname)
-    {
+    if (geteuid()) {
+	ap_log_error(APLOG_MARK, APLOG_ALERT, server_conf,
+		    "mod_jail can't jail when not started as root.");
+	return;
+    }
+    if (cfg->jail.hostname == NULL) {
         ap_log_error(APLOG_MARK, APLOG_NOERRNO | APLOG_ERR, s,
-                     "mod_jail is not properly configured.");
+                     "mod_jail hostname is not set.");
         return;
     }
-
+    if (cfg->jail.path == NULL) {
+	ap_log_error(APLOG_MARK, APLOG_NOERRNO | APLOG_ERR, s,
+    		     "mod_jail jail dir is not set.");
+    	return;
+    }
+    if (chdir(cfg->jail.path) == -1) {
+	ap_log_error(APLOG_MARK, APLOG_ERR, s,
+    		     "mod_jail unable to chdir to %s.", cfg->jail.path);
+    	return;
+    }
 #ifdef EAPI
     if (jail_ctx == NULL) {
         jail_ctx = ap_pcalloc(pool, sizeof(jail_ctx_t));
@@ -105,17 +119,15 @@ static void jail_init(server_rec *s,
             ap_log_error(APLOG_MARK, APLOG_ERR, s,
                          "mod_jail call jail() failed.");
         }
-
         if (chdir("/") == -1) {
             ap_log_error(APLOG_MARK, APLOG_ERR, s,
                          "mod_jail call chdir() failed.");
         }
-
         if (cfg->jail_scrlevel > 0) {
 #if 1
             if (sysctl((int[]){
-            CTL_KERN, KERN_SECURELVL }, 2, 0, 0,
-        &cfg->jail_scrlevel, sizeof(cfg->jail_scrlevel)) == -1)
+        		CTL_KERN, KERN_SECURELVL }, 2, 0, 0,
+			&cfg->jail_scrlevel, sizeof(cfg->jail_scrlevel)) == -1)
 #else
             if (sysctlbyname("kern.securelevel", 0, 0,
                              &cfg->jail_scrlevel, sizeof(cfg->jail_scrlevel)) == -1)
@@ -130,13 +142,28 @@ static void jail_init(server_rec *s,
 static void *jail_server_config(pool *p, server_rec *s __unused)
 {
     p_jail_cfg_t cfg = (p_jail_cfg_t) ap_pcalloc(p, sizeof(jail_cfg_t));
+    struct in_addr *p_addr = ap_pcalloc(cmd->pool, sizeof(struct in_addr));
 
-    cfg->jail_scrlevel = 3; /* good default value */
-#if ((__FreeBSD_version >= 800000 && __FreeBSD_version < 800056) || __FreeBSD_version < 701103)
-    cfg->jail.version = 0;
-#else
-    cfg->jail.version = JAIL_API_VERSION;
+    addr->s_addr = htonl(INADDR_LOOPBACK);
+#if JAIL_API_VERSION == 0
+    cfg->jail = {
+	.version = JAIL_API_VERSION,
+	.path = NULL,
+	.hostname = "localhost",
+	.ip_number = INADDR_LOOPBACK };
+#elif JAIL_API_VERSION == 2
+    cfg->jail = {
+	.version = JAIL_API_VERSION,
+	.path = NULL,
+	.hostname = "localhost",
+	.jailname = NULL,
+	.ip4s = 1,
+	.ip6s = 0,
+	.ip4 = p_addr,
+	.ip6 = NULL };
 #endif
+    cfg->jail_scrlevel = 3; /* good default value */
+
     return (void *)cfg;
 }
 
@@ -155,10 +182,11 @@ static const char *set_jail_root(cmd_parms *cmd, void *p __unused, char *arg)
     if (!arg || !strlen(arg)) {
         return "jail_rootdir must be set";
     }
+    arg = ap_os_canonical_filename(cmd->pool, arg);
     if (!ap_is_directory(arg)) {
         return "jail_rootdir must be existing directory";
     }
-    cfg->jail.path = ap_pstrdup(cmd->pool, arg);
+    cfg->jail.path = arg;
 
     return NULL;
 }
@@ -175,7 +203,7 @@ static const char *set_jail_host(cmd_parms *cmd, void *p __unused, char *arg)
     if (!arg || !strlen(arg)) {
         return "jail_hostname must be set";
     }
-    cfg->jail.hostname = ap_pstrdup(cmd->pool, arg);
+    cfg->jail.hostname = arg;
 
     return NULL;
 }
@@ -196,11 +224,9 @@ static const char *set_jail_addr(cmd_parms *cmd, void *p __unused, char *arg)
     if (!inet_aton(arg, &in)) {
         return "could not make sense of jail ip address";
     }
-#if ((__FreeBSD_version >= 800000 && __FreeBSD_version < 800056) || __FreeBSD_version < 701103)
+#if JAIL_API_VERSION == 0
     cfg->jail.ip_number = ntohl(in.s_addr);
-#else
-    cfg->jail.ip4s = 1;
-    cfg->jail.ip4 = ap_pcalloc(cmd->pool, sizeof(struct in_addr));
+#elif JAIL_API_VERSION == 2
     cfg->jail.ip4[0].s_addr = in.s_addr;
 #endif
 
@@ -301,6 +327,17 @@ static int jail_init(apr_pool_t *p __unused, apr_pool_t *plog __unused, apr_pool
         jail_ctx->is_jailed = 0;
         apr_pool_userdata_set(jail_ctx, JAIL_CTX, apr_pool_cleanup_null, s->process->pool);
     } else if (jail_ctx->is_jailed++ == 0) {
+	if (geteuid()) {
+	    ap_log_error(APLOG_MARK, APLOG_ALERT, server_conf,
+			"mod_jail can't jail when not started as root.");
+	    return;
+	}
+	
+	if (chdir(cfg->jail.path) == -1) {
+	    ap_log_error(APLOG_MARK, APLOG_ERR, s,
+    		     "mod_jail unable to chdir to %s.", cfg->jail.path);
+    	    return;
+	}
 
         if (jail(&cfg->jail) == -1) {
             ap_log_error(APLOG_MARK, APLOG_ERR, 0, s,
@@ -336,16 +373,36 @@ if (sysctlbyname("kern.securelevel", 0, 0,
 static void *jail_server_config(apr_pool_t *p, server_rec *s __unused)
 {
     p_jail_cfg_t cfg = (p_jail_cfg_t) apr_pcalloc(p, sizeof(jail_cfg_t));
+    struct in_addr *p_addr = NULL;
 
     if (!cfg) {
         return NULL;
     }
-    cfg->jail_scrlevel = 3; /* good default value */
-#if ((__FreeBSD_version >= 800000 && __FreeBSD_version < 800056) || __FreeBSD_version < 701103)
-    cfg->jail.version = 0;
-#else
-    cfg->jail.version = JAIL_API_VERSION;
+
+#if JAIL_API_VERSION == 0
+    cfg->jail = {
+	.version = JAIL_API_VERSION,
+	.path = NULL,
+	.hostname = "localhost",
+	.ip_number = INADDR_LOOPBACK };
+#elif JAIL_API_VERSION == 2
+    p_addr = apr_pcalloc(p, sizeof(struct in_addr));
+    if (!p_addr) {
+        return NULL;
+    }
+    addr->s_addr = htonl(INADDR_LOOPBACK);
+    cfg->jail = {
+	.version = JAIL_API_VERSION,
+	.path = NULL,
+	.hostname = "localhost",
+	.jailname = NULL,
+	.ip4s = 1,
+	.ip6s = 0,
+	.ip4 = p_addr,
+	.ip6 = NULL };
 #endif
+    cfg->jail_scrlevel = 3; /* good default value */
+
     return (void*)cfg;
 }
 
@@ -366,7 +423,7 @@ static const char *set_jail_root(cmd_parms *cmd, void *dummy __unused, const cha
         return "jail_rootdir doesn't exist";
     }
 
-    cfg->jail.path = apr_pstrdup(cmd->pool,arg);
+    cfg->jail.path = arg;
 
     return NULL;
 }
@@ -383,7 +440,7 @@ static const char *set_jail_host(cmd_parms *cmd, void *dummy __unused, const cha
         return "jail_hostname must be set";
     }
 
-    cfg->jail.hostname = apr_pstrdup(cmd->pool,arg);
+    cfg->jail.hostname = arg;
 
     return NULL;
 }
@@ -403,11 +460,9 @@ static const char *set_jail_addr(cmd_parms *cmd, void *dummy __unused, const cha
     if (!inet_aton(arg, &in)) {
         return "could not make sense of jail ip address";
     }
-#if ((__FreeBSD_version >= 800000 && __FreeBSD_version < 800056) || __FreeBSD_version < 701103)
+#if JAIL_API_VERSION == 0
     cfg->jail.ip_number = ntohl(in.s_addr);
-#else
-    cfg->jail.ip4s = 1;
-    cfg->jail.ip4 = ap_pcalloc(cmd->pool, sizeof(struct in_addr));
+#elif JAIL_API_VERSION == 2
     cfg->jail.ip4[0].s_addr = in.s_addr;
 #endif
 
