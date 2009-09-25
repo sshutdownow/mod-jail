@@ -112,7 +112,7 @@
 -    unixd_config.chroot_dir = NULL; /* none */
 +
 +#if ((__FreeBSD_version >= 800000 && __FreeBSD_version < 800056) || __FreeBSD_version < 701103)
-+    unixd_config.jail = { .version = 0, .path = NULL, .hostname = "localhost", .ip_number = INADDR_LOOPBACK };
++    unixd_config.jail = (struct jail) { .version = 0, .path = NULL, .hostname = "localhost", .ip_number = INADDR_LOOPBACK };
 +#else
 +    unixd_config.jail.version = JAIL_API_VERSION;
 +    unixd_config.jail.path = NULL; /* none */
