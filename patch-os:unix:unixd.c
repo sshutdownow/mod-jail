@@ -156,7 +156,7 @@
 +    unixd_config.jail.ip4[0].s_addr = htonl(INADDR_LOOPBACK);
 +    unixd_config.jail.ip6 = NULL;
 +#else /* JAIL_API_VERSION == 0 */
-+    unixd_config.jail = { .version = 0, .path = NULL, .hostname = "localhost", .ip_number = INADDR_LOOPBACK };
++    unixd_config.jail = (struct jail) { .version = 0, .path = NULL, .hostname = "localhost", .ip_number = INADDR_LOOPBACK };
 +#endif
 +    unixd_config.jail_securelevel = 3;
 +#else /* chroot */
