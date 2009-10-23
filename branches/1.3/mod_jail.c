@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2007 Igor Popov <igorpopov@newmail.ru>
+ * Copyright (c) 2006-2009 Igor Popov <ipopovi@gmail.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -13,8 +13,8 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
- 
-	      
+
+
 #ifndef __FreeBSD__
 #error "This module only for FreeBSD"
 #endif
@@ -24,7 +24,7 @@
 #error "The jail() system call appeared in FreeBSD 4.0"
 #endif
 
-#define CORE_PRIVATE	
+#define CORE_PRIVATE
 
 #include "httpd.h"
 #include "http_config.h"
@@ -33,12 +33,24 @@
 #include "http_core.h"
 #include "http_log.h"
 
+#include "http_main.h"
+#include "http_conf_globals.h"
+#include "util_script.h"
+
+#ifdef EAPI
+#include "ap_ctx.h"
+#endif
+
 #include <sys/param.h>
 #include <sys/jail.h>
 #include <sys/sysctl.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+
+#if !defined(JAIL_API_VERSION)
+#define JAIL_API_VERSION 0
+#endif
 
 #define JAIL_CTX "global::jail_module_ctx"
 
@@ -54,22 +66,16 @@ typedef struct {
 } jail_ctx_t, *p_jail_ctx_t;
 
 
-#include "http_main.h"
-#include "http_conf_globals.h"
-#include "util_script.h"
 
-#ifdef EAPI
-#include "ap_ctx.h"
-#endif
 
 module MODULE_VAR_EXPORT jail_module;
-    
+
 /* init() occurs after config parsing, but before any children are forked. */
 static void jail_init(server_rec *s,
 #ifdef EAPI
-		      pool *pool)
+                      pool *pool)
 #else
-		      pool *pool __unused)
+                      pool *pool __unused)
 #endif
 {
     p_jail_cfg_t cfg = ap_get_module_config(s->module_config, &jail_module);
@@ -78,48 +84,57 @@ static void jail_init(server_rec *s,
 #else
     char *env = getenv("MOD_JAIL_INITIALIZED");
 #endif
-    
-    if (!cfg->jail.path ||
-	!ap_is_directory(cfg->jail.path) ||
-	!cfg->jail.hostname)
-    {
-	ap_log_error(APLOG_MARK, APLOG_NOERRNO | APLOG_ERR, s,
-			"mod_jail is not properly configured.");
+    if (geteuid()) {
+	ap_log_error(APLOG_MARK, APLOG_ALERT, s,
+		    "mod_jail can't jail when not started as root.");
 	return;
     }
-    
+    if (cfg->jail.hostname == NULL) {
+        ap_log_error(APLOG_MARK, APLOG_NOERRNO | APLOG_ERR, s,
+                     "mod_jail hostname is not set.");
+        return;
+    }
+    if (cfg->jail.path == NULL) {
+	ap_log_error(APLOG_MARK, APLOG_NOERRNO | APLOG_ERR, s,
+    		     "mod_jail jail dir is not set.");
+    	return;
+    }
 #ifdef EAPI
     if (jail_ctx == NULL) {
-	jail_ctx = ap_pcalloc(pool, sizeof(jail_ctx_t));
-	ap_ctx_set(ap_global_ctx, JAIL_CTX, jail_ctx);
+        jail_ctx = ap_pcalloc(pool, sizeof(jail_ctx_t));
+        ap_ctx_set(ap_global_ctx, JAIL_CTX, jail_ctx);
     } else if (jail_ctx->is_jailed++ == 0) {
 #else
     if (env == NULL) {
-	setenv("MOD_JAIL_INITIALIZED", "", 0);
+        setenv("MOD_JAIL_INITIALIZED", "", 0);
     } else if (*env == 0) {
-	setenv("MOD_JAIL_INITIALIZED", "YES", 1); /* visible for apache's children */
+        setenv("MOD_JAIL_INITIALIZED", "YES", 1); /* visible for apache's children */
 #endif
-	if (jail(&cfg->jail) == -1) {
+	if (chdir(cfg->jail.path) == -1) {
 	    ap_log_error(APLOG_MARK, APLOG_ERR, s,
-			    "mod_jail call jail() failed.");
+    		        "mod_jail unable to chdir to %s.", cfg->jail.path);
+    	    return;
 	}
-
-	if (chdir("/") == -1) {
-	    ap_log_error(APLOG_MARK, APLOG_ERR, s,
-			    "mod_jail call chdir() failed.");
-	}
-
-	if (cfg->jail_scrlevel > 0) {
+        if (jail(&cfg->jail) == -1) {
+            ap_log_error(APLOG_MARK, APLOG_ERR, s,
+                         "mod_jail call jail() failed.");
+        }
+        if (chdir("/") == -1) {
+            ap_log_error(APLOG_MARK, APLOG_ERR, s,
+                         "mod_jail call chdir() failed.");
+        }
+        if (cfg->jail_scrlevel > 0) {
 #if 1
-	    if (sysctl((int[]){ CTL_KERN, KERN_SECURELVL }, 2, 0, 0,
+            if (sysctl((int[]){
+        		CTL_KERN, KERN_SECURELVL }, 2, 0, 0,
 			&cfg->jail_scrlevel, sizeof(cfg->jail_scrlevel)) == -1)
 #else
-	    if (sysctlbyname("kern.securelevel", 0, 0,
-			&cfg->jail_scrlevel, sizeof(cfg->jail_scrlevel)) == -1)
+            if (sysctlbyname("kern.securelevel", 0, 0,
+                             &cfg->jail_scrlevel, sizeof(cfg->jail_scrlevel)) == -1)
 #endif
-		ap_log_error(APLOG_MARK, APLOG_ERR, s,
-		    "mod_jail call sysctl() to set up kern.securelevel failed.");
-	}
+            ap_log_error(APLOG_MARK, APLOG_ERR, s,
+                         "mod_jail call sysctl() to set up kern.securelevel failed.");
+        }
     }
     return;
 }
@@ -127,12 +142,39 @@ static void jail_init(server_rec *s,
 static void *jail_server_config(pool *p, server_rec *s __unused)
 {
     p_jail_cfg_t cfg = (p_jail_cfg_t) ap_pcalloc(p, sizeof(jail_cfg_t));
+    struct in_addr *p_addr = NULL;
 
+    if (cfg == NULL) {
+	return NULL;
+    }
+
+#if JAIL_API_VERSION == 0
+    cfg->jail = (struct jail) {
+	.version = JAIL_API_VERSION,
+	.path = NULL,
+	.hostname = "localhost",
+	.ip_number = INADDR_LOOPBACK };
+#elif JAIL_API_VERSION == 2
+    p_addr = ap_pcalloc(p, sizeof(struct in_addr));
+    if (p_addr == NULL) {
+	return NULL;
+    }
+    p_addr->s_addr = htonl(INADDR_LOOPBACK);
+    cfg->jail = (struct jail) {
+	.version = JAIL_API_VERSION,
+	.path = NULL,
+	.hostname = "localhost",
+	.jailname = NULL,
+	.ip4s = 1,
+	.ip6s = 0,
+	.ip4 = p_addr,
+	.ip6 = NULL };
+#endif
     cfg->jail_scrlevel = 3; /* good default value */
-    cfg->jail.version = 0;
+
     return (void *)cfg;
 }
-	
+
 
 /* Config stuff */
 
@@ -140,18 +182,19 @@ static const char *set_jail_root(cmd_parms *cmd, void *p __unused, char *arg)
 {
     p_jail_cfg_t cfg = ap_get_module_config(cmd->server->module_config, &jail_module);
     const char *errmsg = ap_check_cmd_context(cmd, GLOBAL_ONLY);
-    
+
     if (errmsg) {
-	return errmsg;
-    }	
+        return errmsg;
+    }
 
     if (!arg || !strlen(arg)) {
         return "jail_rootdir must be set";
     }
+    arg = ap_os_canonical_filename(cmd->pool, arg);
     if (!ap_is_directory(arg)) {
         return "jail_rootdir must be existing directory";
     }
-    cfg->jail.path = ap_pstrdup(cmd->pool, arg);
+    cfg->jail.path = arg;
 
     return NULL;
 }
@@ -160,15 +203,15 @@ static const char *set_jail_host(cmd_parms *cmd, void *p __unused, char *arg)
 {
     p_jail_cfg_t cfg = ap_get_module_config(cmd->server->module_config, &jail_module);
     const char *errmsg = ap_check_cmd_context(cmd, GLOBAL_ONLY);
-    
+
     if (errmsg) {
-	return errmsg;
-    }	
+        return errmsg;
+    }
 
     if (!arg || !strlen(arg)) {
         return "jail_hostname must be set";
     }
-    cfg->jail.hostname = ap_pstrdup(cmd->pool, arg);
+    cfg->jail.hostname = arg;
 
     return NULL;
 }
@@ -178,18 +221,22 @@ static const char *set_jail_addr(cmd_parms *cmd, void *p __unused, char *arg)
     p_jail_cfg_t cfg = ap_get_module_config(cmd->server->module_config, &jail_module);
     struct in_addr in;
     const char *errmsg = ap_check_cmd_context(cmd, GLOBAL_ONLY);
-    
+
     if (errmsg) {
-	return errmsg;
-    }	
+        return errmsg;
+    }
 
     if (!arg || !strlen(arg)) {
         return "jail_address must be set";
     }
     if (!inet_aton(arg, &in)) {
-	return "could not make sense of jail ip address";
+        return "could not make sense of jail ip address";
     }
+#if JAIL_API_VERSION == 0
     cfg->jail.ip_number = ntohl(in.s_addr);
+#elif JAIL_API_VERSION == 2
+    cfg->jail.ip4[0].s_addr = in.s_addr;
+#endif
 
     return NULL;
 }
@@ -198,10 +245,10 @@ static const char *set_jail_scrlvl(cmd_parms *cmd, void *p __unused, char *arg)
 {
     p_jail_cfg_t cfg = ap_get_module_config(cmd->server->module_config, &jail_module);
     const char *errmsg = ap_check_cmd_context(cmd, GLOBAL_ONLY);
-    
+
     if (errmsg) {
-	return errmsg;
-    }	
+        return errmsg;
+    }
 
     if (!arg || !strlen(arg)) {
         return "jail_scrlevel must be value from set {-1, 0, 1, 2, 3}";
