@@ -5,7 +5,7 @@
  #endif
  
 +#ifndef __FreeBSD__
-+#error "This path for FreeBSD only!!!"
++#error "This patch for FreeBSD only!!!"
 +#endif
 +
 +#include <osreldate.h>
