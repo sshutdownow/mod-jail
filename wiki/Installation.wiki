@@ -73,3 +73,19 @@ Just restart apache: `apachectl stop; apachectl start`. So, it should work now. 
 }}}
 
 This module is tested to compile and work on FreeBSD 6.0, 6.1 and 6.2. I expect it to work on any FreeBSD > 4.0
+
+====Check that cgi-processes are jailed:====
+{{{
+<?php
+chdir('/');
+echo "Current dir is `", getcwd(), "'<br />";
+
+$dir_handle = @opendir('.') or die("Unable to open current dir");
+while ($file = readdir($dir_handle)) 
+{
+   echo "$file<br/>";
+}
+closedir($dir_handle);
+
+?>
+}}}

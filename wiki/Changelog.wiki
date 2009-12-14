@@ -1,5 +1,10 @@
 #labels Featured
 ==Changelog==
+===14 Dec 2009===
+{{{
+    Added merged patch for Apache 2.2.14 that contains both jail and chroot parts: when compiles on FreeBSD jail(2) is used, for other unixes, for example, linux chroot(2) is used.
+}}}
+
 ===20 Oct 2009===
 {{{
     mod_jail version 0.5.1
