@@ -72,9 +72,9 @@ Just restart apache: `apachectl stop; apachectl start`. So, it should work now. 
   50  192.168.0.1     www.localhost.net             /usr/local/www
 }}}
 
-This module is tested to compile and work on FreeBSD 6.0, 6.1 and 6.2. I expect it to work on any FreeBSD > 4.0
+This module is tested to compile and work on FreeBSD version 6.0 through 8.0, I expect it to work on any FreeBSD > 4.0. Since FreeBSD-8.0 there is a new jail API version 2, both new versions of *mod_jail* and *jail patch* support it.
 
-====Check that cgi-processes are jailed:====
+===Check that cgi processes are jailed:===
 {{{
 <?php
 chdir('/');
@@ -89,3 +89,4 @@ closedir($dir_handle);
 
 ?>
 }}}
+It should list contents of `JailDir`
