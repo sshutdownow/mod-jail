@@ -1,0 +1,93 @@
+#summary installation
+#labels Phase-Deploy,Featured
+
+I offer two major options to make Apache run in jail prison: patch for Apache's source code and dynamic module. Using of the patch is preferred over original module. For your convenience there are ports skeletons for both patch and module. Port for module exists in FreeBSD's Ports Collection.
+
+Note: You must be logged in as root to install ports.
+
+= Details =
+===Installation instructions for patched Apache:===
+
+Download port skeleton: {{{fetch http://mod-jail.googlecode.com/files/port-apache13-1.3.41_1.tgz}}}.
+
+Extract and decompress it: {{{tar -xzvf port-apache13-1.3.41_1.tgz}}}.
+
+Than build and install port: {{{cd apache13 && make all install clean}}}.
+
+Now we have Apache installed, to make run it in jail it is enough to add one string to httpd.conf: `JailDir "/usr/local/www"`. There are other configuration options coresponding for jail parameters: `JailAddress`, `JailHostname` and `JailSecurelevel`, their default values are suitable for most installations:
+{{{
+JailDir "/usr/local/www"
+# Default values
+# IP address of jail prison
+#JailAddress "127.0.0.1"
+# hostname for jail prison
+#JailHostname "localhost"
+# securelevel(7) inside jail prison
+#JailSecurelevel 3
+}}}
+
+Start apache: `apachectl start`. So, it should work now. Every apache's child is imprisoned in its own jail, you can see jails by `jls` command:
+{{{
+# jls
+   JID  IP Address      Hostname                      Path
+    13  127.0.0.1       localhost                     /usr/local/www
+    14  127.0.0.1       localhost                     /usr/local/www
+    15  127.0.0.1       localhost                     /usr/local/www
+    16  127.0.0.1       localhost                     /usr/local/www
+    17  127.0.0.1       localhost                     /usr/local/www
+    18  127.0.0.1       localhost                     /usr/local/www
+}}}
+
+===Installation instructions for module:===
+ *====From packages:====
+ `# pkg_add -r mod_jail`
+ *====From Ports Collection:====
+ `# cd /usr/ports/www/mod_jail && make all install clean`
+
+====Apache:====
+Edit apache config, you may use _httpd.conf.add_ as example, if you are using apache 1.3 make shure that `AddModule mod_jail.so` is next line after `ClearModuleList`, for apache2 `LoadModule libexec/apache2/mod_jail2.so` is enough.
+{{{
+LoadModule jail_module        libexec/apache/mod_jail.so
+# ...
+
+ClearModuleList
+AddModule mod_jail.c
+# ...
+#
+<IfModule mod_jail.c>
+        jail_rootdir            "/usr/local/www"
+        jail_hostname           "www.localhost.net"
+        jail_address            192.168.0.1
+        # recommended value for securelevel
+        jail_scrlevel           3
+</IfModule>
+# all parameters must be set.
+}}}	    
+
+====Make it all working:====
+Just restart apache: `apachectl stop; apachectl start`. So, it should work now. If verion of your FreeBSD is >= 5.1, you can see jail by `jls` command:
+{{{
+# jls
+ JID  IP Address      Hostname                      Path
+  50  192.168.0.1     www.localhost.net             /usr/local/www
+}}}
+
+This module is tested to compile and work on FreeBSD version 6.0 through 8.0, I expect it to work on any FreeBSD > 4.0. Since FreeBSD-8.0 there is a new jail API version 2, both new versions of *mod_jail* and *jail patch* support it.
+
+===Проверка того, что скрипты CGI выполняются в изолированном окружении:===
+{{{
+<?php
+chdir('/');
+echo "Current dir is `", getcwd(), "'<br />";
+
+$dir_handle = @opendir('.') or die("Unable to open current dir");
+while ($file = readdir($dir_handle)) 
+{
+   echo "$file<br/>";
+}
+closedir($dir_handle);
+
+?>
+}}}
+
+Этот скрипт должен вывести листинг директории `JailDir`
