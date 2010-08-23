@@ -1,5 +1,10 @@
 #labels Featured
 ==Changelog==
+===22 Aug 2010===
+{{{
+    Added merged patch for Apache 2.2.16. There is no changes since 2.2.14.
+}}}
+
 ===01 Jul 2010===
 {{{
     Added merged patch for Apache 2.2.15 that contains both jail and chroot parts: when compiles on FreeBSD jail(2) is used, for other unixes, for example, linux chroot(2) is used.
