@@ -1,4 +1,6 @@
+#summary changelog
 #labels Featured
+
 ==Changelog==
 ===22 Aug 2010===
 {{{
