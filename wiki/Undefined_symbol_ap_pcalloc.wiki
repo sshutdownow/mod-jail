@@ -15,7 +15,7 @@ httpd: Syntax error on line 114 of /usr/local/etc/apache22/httpd.conf: Cannot lo
 
 [http://lists.freebsd.org/pipermail/freebsd-ports-bugs/2009-February/157933.html Error has appeared when support for the new jail API version two was added.]
 
-To fix that you should change ap_pcalloc to apr_pcalloc and rebuild module:
+To *fix* that you should change ap_pcalloc to apr_pcalloc and rebuild module:
   * cd /usr/ports/www/mod_jail
   * make config
   * perl -pi -e 's/ap_pcalloc/apr_pcalloc/g' work/mod_jail.c
