@@ -1,5 +1,5 @@
+#summary mod_jail.so: Undefined symbol "ap_pcalloc"
 #labels Phase-Support,Featured
-#mod_jail.so: Undefined symbol "ap_pcalloc
 
 Version 0.4 of *mod_jail* that is in ports contains an error, so, if you install mod_jail from ports for apache2 or apache22 and start *Apache*, you will see something like this:
 {{{
