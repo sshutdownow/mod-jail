@@ -18,5 +18,5 @@ httpd: Syntax error on line 114 of /usr/local/etc/apache22/httpd.conf: Cannot lo
 To *fix* that you should change ap_pcalloc to apr_pcalloc and rebuild module:
   * cd /usr/ports/www/mod_jail
   * make config
-  * perl -pi -e 's/ap_pcalloc/apr_pcalloc/g' work/mod_jail.c
+  * perl -pi -e 's/ap_pcalloc/apr_pcalloc/g' work/mod_jail/mod_jail.c
   * make deinstall ; make all install
