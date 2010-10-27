@@ -1,0 +1,62 @@
+#summary installation Apache module
+#labels Featured,Phase-Deploy
+
+= Introduction =
+
+I offer two major options to make Apache run in jail prison: patch for Apache's source code and dynamic module. Using of the patch is preferred over original module, but module is still here if don't have ability to rebuild Apache from sources. For your convenience there are ports skeletons for both patch and module and port for module exists in FreeBSD's Ports Collection.  Since FreeBSD-8.0 there is a new jail API version 2, both new versions of *mod_jail* and *jail patch* support it.
+
+= Details =
+
+==Installation==
+Official port for module exists in FreeBSD's Ports Collection, so you may install module from prebuild package, or build it from source. Package is built only for Apache 1.3, so, if you have Apache version 2.0 or 2.2 installed you have to build module from source. 
+ * To install module from prebuild package use command: {{{# pkg_add -r mod_jail}}}
+ * To build module from *Ports Collection*  use command: {{{# cd /usr/ports/www/mod_jail && make all install clean}}}
+  
+Note: You must be logged in as root to install ports.
+
+===Apache Configuration===
+Edit Apache's config, you may use _httpd.conf.add_ as example, if you are using Apache 1.3 make shure that line `AddModule mod_jail.so` goes after `ClearModuleList` line, for Apache2 `LoadModule libexec/apache2/mod_jail2.so` is enough.
+{{{
+LoadModule jail_module        libexec/apache/mod_jail.so
+# ...
+
+ClearModuleList
+AddModule mod_jail.c
+# ...
+#
+<IfModule mod_jail.c>
+        jail_rootdir            "/usr/local/www"
+        jail_hostname           "www.localhost.net"
+        jail_address            192.168.0.1
+        # recommended value for securelevel
+        jail_scrlevel           3
+</IfModule>
+# all parameters must be set.
+}}}	    
+
+===Make it all working:===
+Just restart apache: `apachectl stop; apachectl start`. So, it should work now. If verion of your FreeBSD is >= 5.1, you can see jail by `jls` command:
+{{{
+# jls
+ JID  IP Address      Hostname                      Path
+  50  192.168.0.1     www.localhost.net             /usr/local/www
+}}}
+
+This module is tested to compile and work on FreeBSD version 6.0 through 8.0, I expect it to work on any FreeBSD > 4.0.
+
+===Check that cgi processes are jailed:===
+{{{
+<?php
+chdir('/');
+echo "Current dir is `", getcwd(), "'<br />";
+
+$dir_handle = @opendir('.') or die("Unable to open current dir");
+while ($file = readdir($dir_handle)) 
+{
+   echo "$file<br/>";
+}
+closedir($dir_handle);
+
+?>
+}}}
+It should list contents of `JailDir`
