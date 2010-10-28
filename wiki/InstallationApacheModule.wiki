@@ -10,7 +10,7 @@ I offer two major options to make Apache run in jail prison: patch for Apache's 
 ==Installation==
 Official port for module exists in FreeBSD's Ports Collection, so you may install module from prebuild package, or build it from source. Package is built only for Apache 1.3, so, if you have Apache version 2.0 or 2.2 installed you have to build module from source. 
  * To install module from prebuild package use command: {{{# pkg_add -r mod_jail}}}
- * To build module from *Ports Collection*  use command: {{{# cd /usr/ports/www/mod_jail && make all install clean}}}
+ * To build module from *Ports Collection*  use command: {{{# cd /usr/ports/www/mod_jail && make all install clean}}} If Apache doesn't start, please, see solution -  Undefined_symbol_ap_pcalloc
   
 Note: You must be logged in as root to install ports.
 
