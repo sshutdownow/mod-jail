@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2009 Igor Popov <ipopovi@gmail.com>
+ * Copyright (c) 2006-2011 Igor Popov <ipopovi@gmail.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -150,7 +150,7 @@ static void *jail_server_config(apr_pool_t *p, server_rec *s __unused)
     if (p_addr == NULL) {
         return NULL;
     }
-    addr->s_addr = htonl(INADDR_LOOPBACK);
+    p_addr->s_addr = htonl(INADDR_LOOPBACK);
     cfg->jail = (struct jail) {
 	.version = JAIL_API_VERSION,
 	.path = NULL,
