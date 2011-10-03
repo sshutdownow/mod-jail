@@ -2,6 +2,11 @@
 #labels Featured
 
 ==Changelog==
+===03 Oct 2011===
+{{{
+    Added merged patch for Apache 2.2.21. There are no changes from previous version.
+}}}
+
 ===12 Sep 2011===
 {{{
     Added merged patch for Apache 2.2.20. There are no changes since 2.2.19.
