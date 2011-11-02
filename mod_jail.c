@@ -336,12 +336,12 @@ static int jail_init(apr_pool_t *p __unused, apr_pool_t *plog __unused, apr_pool
 	if (geteuid()) {
 	    ap_log_error(APLOG_MARK, APLOG_ALERT, 0, s,
 			"mod_jail can't jail when not started as root.");
-	    return;
+	    return !OK;
 	}
 	if (chdir(cfg->jail.path) == -1) {
 	    ap_log_error(APLOG_MARK, APLOG_ERR, 0, s,
     		     "mod_jail unable to chdir to %s.", cfg->jail.path);
-    	    return;
+    	    return !OK;
 	}
         if (jail(&cfg->jail) == -1) {
             ap_log_error(APLOG_MARK, APLOG_ERR, 0, s,
