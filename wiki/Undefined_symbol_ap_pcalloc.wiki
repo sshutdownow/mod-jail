@@ -1,9 +1,9 @@
 #summary mod_jail.so: Undefined symbol "ap_pcalloc"
-#labels Phase-Support,Featured
+#labels Phase-Support,Deprecated
 
 = Introduction =
 
-Version 0.4 of *mod_jail* that is in official ports tree contains an error.
+Official port of *mod_jail* version 0.4 have had a bug.
 
 = Details =
 
