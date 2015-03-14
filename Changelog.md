@@ -1,0 +1,136 @@
+## Changelog ##
+### 15 Feb 2012 ###
+```
+    Added merged patch for Apache 2.2.22. There are no changes from previous version.
+```
+
+### 03 Oct 2011 ###
+```
+    Added merged patch for Apache 2.2.21. There are no changes from previous version.
+```
+
+### 12 Sep 2011 ###
+```
+    Added merged patch for Apache 2.2.20. There are no changes since 2.2.19.
+```
+
+### 23 May 2011 ###
+```
+    Added merged patch for Apache 2.2.19. There is minor change that makes patch applicable to new Apache's code.
+```
+
+### 02 Apr 2011 ###
+```
+    mod_jail version 0.5.2
+    Fix typo in Apache 2.xx code.
+```
+
+### 21 Oct 2010 ###
+```
+    Added merged patch for Apache 2.2.17. There are no changes since 2.2.14.
+```
+
+### 22 Aug 2010 ###
+```
+    Added merged patch for Apache 2.2.16. There are no changes since 2.2.14.
+```
+
+### 01 Jul 2010 ###
+```
+    Added merged patch for Apache 2.2.15 that contains both jail and chroot parts: when compiles on FreeBSD jail(2) is used, for other unixes, for example, linux chroot(2) is used.
+```
+
+### 04 Feb 2010 ###
+```
+    Port skeleton for the latest version of the apache in 1.3.x branch. Jail and chroot patch doesn't contains any changes.
+```
+
+### 14 Dec 2009 ###
+```
+    Added merged patch for Apache 2.2.14 that contains both jail and chroot parts: when compiles on FreeBSD jail(2) is used, for other unixes, for example, linux chroot(2) is used.
+```
+
+### 20 Oct 2009 ###
+```
+    mod_jail version 0.5.1
+    Fix to work on Apache 2.xx. Problem has appeared in 0.5 when patch from FreeBSD's ports for new multi-IPv4 jail API was merged.
+```
+
+### 19 Sep 2009 ###
+```
+    Patch for Apache 1.3.41 now contains code for both jail and chroot: when compiles on FreeBSD jail(2) is used, for other unixes, for example, linux chroot(2) is used.
+```
+
+### 05 Sep 2009 ###
+```
+    Added jail and chroot patch against Apache 2.0.63: when compiles on FreeBSD jail(2) is used, for other unixes, for example, linux chroot(2) is used.
+```
+
+### 30 Aug 2009 ###
+```
+    Added jail patch against Apache 2.2.13, both jail API versions 0 and 2 are supported.
+```
+
+### 07 May 2009 ###
+```
+    Make jail patch for Apache 1.3.41 to work with new jail API on FreeBSD 7.2.
+```
+
+### 06 May 2009 ###
+```
+    Make jail patch for Apache 2.2.11 to work with new jail API on FreeBSD 7.2.
+```
+
+
+### 16 Apr 2009 ###
+```
+    To svn tree added patch for FreeBSD's port of the Apache 1.3.41 that allows to run Apaches in jail(2) prison. Using of this patch is prefered over original mod_jail.
+```
+
+### 14 Mar 2009 ###
+```
+    Starting from version 2.2.10, Apache supports chroot on Unix-like platforms.
+    To svn tree added patch for Apache 2.2.11 that uses jail intead of chroot and FreeBSD's port that contains this patch.
+```
+
+### 09 Mar 2009 ###
+```
+    mod_jail version 0.5
+    Merged patch from FreeBSD's ports for new multi-IPv4 jail API.
+```
+
+### 15 Feb 2007 ###
+```
+    mod_jail version 0.4
+    There is now one source code that supports Apache 1.3 and 2.0 .
+```
+
+### 08 Feb 2007 ###
+```
+    mod_jail version 0.3
+    Added EAPI support. Without EAPI, environment variable is used to determine
+    whether apache is jailed or not.
+```
+
+### 07 Feb 2007 ###
+```
+    mod_jail version 0.2
+    Added mod_jail2 for Apache2.
+```
+
+### 27 Jan 2007 ###
+```
+    Version 0.2
+    Fixes and code cleanups.
+```
+
+### 08 Oct 2006 ###
+```
+    Added to port tree www/mod_jail.
+```
+
+### 04 Jun 2006 ###
+```
+    mod_jail version 0.1
+    Initial Release.
+```
