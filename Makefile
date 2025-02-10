@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006-2009 Igor Popov <ipopovi@gmail.com>
+# Copyright (c) 2006-2025 Igor Popov <ipopovi@gmail.com>
 #
 # $Id$
 #
@@ -32,5 +32,5 @@ install: all
 	$(APXS) -i -A -n $(NAME) .libs/$(APACHE_MODULE)
 
 clean:
-	$(RM) $(OBJS) $(APACHE_MODULE)
+	$(RM) $(OBJS) $(APACHE_MODULE) mod_jail.la mod_jail.lo mod_jail.slo
 	$(RM) -r .libs/
