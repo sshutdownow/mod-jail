@@ -19,6 +19,7 @@ jobs:
       with:
         envs: 'MYTOKEN MYTOKEN2'
         usesh: true
+        cpu: 4
         prepare: |
           pkg install -y apache24
 
@@ -26,6 +27,7 @@ jobs:
           make
           make install
           install -m 0644 -o 0 -g 0 FreeBSD/2.0/001_mod_jail.conf /usr/local/etc/apache24/modules.d/
+          echo "ServerName localhost" >> /usr/local/etc/apache24/httpd.conf
           service apache24 onestart
           jls
           service apache24 onestop
