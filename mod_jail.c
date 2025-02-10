@@ -273,12 +273,13 @@ static const char *set_jail_scrlvl(cmd_parms *cmd, void *dummy __unused, const c
     if (errmsg) {
         return errmsg;
     }
+    errmsg = "jail_scrlevel must be value from set {-1, 0, 1, 2, 3}";
     if (!arg || !strlen(arg)) {
-        return "jail_scrlevel must be value from set {-1, 0, 1, 2, 3}";
+        return errmsg;
     }
     cfg->jail_scrlevel = strtol(arg, 0, 10);
     if (cfg->jail_scrlevel < -1 || cfg->jail_scrlevel > 3 ) {
-        return "jail_scrlevel must be value from set {-1, 0, 1, 2, 3}";
+        return errmsg;
     }
 
     return NULL;
