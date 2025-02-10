@@ -29,7 +29,7 @@ $(APACHE_MODULE): $(SRCS)
 	$(APXS) -c $(CFLAGS) $(LDFLAGS) $(SRCS)
 
 install: all
-	$(APXS) -i -A -n $(NAME) .libs/$(APACHE_MODULE)
+	$(APXS) -i -a -n $(NAME) .libs/$(APACHE_MODULE)
 
 clean:
 	$(RM) $(OBJS) $(APACHE_MODULE) mod_jail.la mod_jail.lo mod_jail.slo
