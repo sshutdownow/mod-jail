@@ -26,7 +26,7 @@ jobs:
         run: |
           make
           make install
-          install -m 0644 -o 0 -g 0 FreeBSD/001_mod_jail.conf /usr/local/etc/apache24/modules.d/
+          install -d -m 0644 -o 0 -g 0 FreeBSD/files/001_mod_jail.conf.in /usr/local/etc/apache24/modules.d/001_mod_jail.conf
           echo "ServerName localhost" >> /usr/local/etc/apache24/httpd.conf
           service apache24 onestart
           jls -v
