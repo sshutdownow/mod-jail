@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build and test in FreeBSD
-      id: build and test
+      id: build
       uses: vmactions/freebsd-vm@v1
       with:
         envs: 'MYTOKEN MYTOKEN2'
@@ -25,6 +25,7 @@ jobs:
         run: |
           make
           make install
+          install -m 0644 -o 0 -g 0 FreeBSD/2.0/001_mod_jail.conf /usr/local/etc/apache24/modules.d/
           service apache24 onestart
           jls
           service apache24 onestop
