@@ -165,7 +165,7 @@ static void *jail_server_config(apr_pool_t *p, server_rec *s __unused)
 
     cfg->jail = (struct jail) {
 	.version = JAIL_API_VERSION,
-	.path = NULL,
+	.path = "/",
 	.hostname = "localhost",
 	.jailname = NULL,
 	.ip4s = 1,
