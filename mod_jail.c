@@ -195,7 +195,7 @@ static const char *set_jail_root(cmd_parms *cmd, void *dummy __unused, const cha
         return "jail_rootdir doesn't exist";
     }
 
-    cfg->jail.path = arg;
+    cfg->jail.path = (char*)arg;
 
     return NULL;
 }
@@ -212,7 +212,7 @@ static const char *set_jail_host(cmd_parms *cmd, void *dummy __unused, const cha
         return "jail_hostname must be set";
     }
 
-    cfg->jail.hostname = arg;
+    cfg->jail.hostname = (char*)arg;
 
     return NULL;
 }
@@ -293,7 +293,7 @@ static const command_rec jail_cmds[] = {
     AP_INIT_TAKE1("jail_address6",  set_jail_addr6, NULL, RSRC_CONF, "Set the IPv6 address assigned to the jail prison."),
 #endif
     AP_INIT_TAKE1("jail_scrlevel", set_jail_scrlvl, NULL, RSRC_CONF, "Set securelevel inside jail prison."),
-    { NULL },
+    { NULL }
 };
 
 static void register_hooks(apr_pool_t *pool __unused)
