@@ -9,7 +9,7 @@ There are two ways to run Apache in jail that I use:
 
 ### Copyright
 
-  Copyright (c) 2006-2016 Igor Popov
+  Copyright (c) 2006-2025 Igor Popov
 
 License
 -------
