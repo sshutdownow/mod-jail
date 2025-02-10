@@ -13,22 +13,19 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Test in FreeBSD
-      id: build
+    - name: Build and test in FreeBSD
+      id: build and test
       uses: vmactions/freebsd-vm@v1
       with:
         envs: 'MYTOKEN MYTOKEN2'
         usesh: true
         prepare: |
-          pkg install -y curl
+          pkg install -y apache24
 
         run: |
-          pwd
-          ls -lah
-          whoami
-          env
-          freebsd-version
-          sysctl hw.model
-          sysctl hw.ncpu
-          sysctl hw.physmem
-          sysctl hw.usermem
+          make
+          make install
+          service apache24 onestart
+          jls
+          service apache24 onestop
+          jls
