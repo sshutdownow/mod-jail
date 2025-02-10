@@ -1,32 +1,39 @@
-# New ports collection makefile for:    mod_jail
-# Date created:				October 25 2005
-# Whom:					Igor Popov <igorpopov@newmail.ru>
-#
-# $$
-
 PORTNAME=	mod_jail
-PORTVERSION=	0.4
+DISTVERSION=	0.6
 CATEGORIES=	www
-MASTER_SITES=	http://igorpopov.newmail.ru/
-DISTNAME=	${PORTNAME}-${PORTVERSION}
-DIST_SUBDIR=	apache2
 
-MAINTAINER=	igorpopov@newmail.ru
-COMMENT=	An Apache2 module for running httpd in a secure jail prison without creating real jail environment
+USE_GITHUB=	yes
+GH_ACCOUNT=	sshutdownow
+GH_PROJECT=	mod-jail
+GH_TAGNAM=	0.6
 
-PORTDOCS=	INSTALL README TODO httpd.conf.add
+PKGNAMEPREFIX=	${APACHE_PKGNAMEPREFIX}
 
-USE_APACHE=	20+
+MAINTAINER=	ipopovi@gmail.com
+COMMENT=	mod_jail is an apache module for running httpd in a secure jail prison without creating real jail environment
+WWW=		https://github.com/sshutdownow/mod-jail
 
-AP_FAST_BUILD=	YES
-AP_GENPLIST=	YES
+LICENSE=	APACHE20
+LICENSE_FILE=	${WRKSRC}/LICENSE
 
-WRKSRC =${WRKDIR}/${PORTNAME}
+LIB_DEPENDS=	
 
-post-install:
-.if !defined(NOPORTDOCS)
-	@${MKDIR} ${DOCSDIR}
-	@${INSTALL_DATA} ${WRKSRC}/${PORTDOCS} ${DOCSDIR}
-.endif
+USES=		apache libtool
 
-.include <bsd.port.mk>
+MODULENAME=	mod_jail
+
+SUB_FILES=	001_mod_jail.conf
+PORTDOCS=	INSTALL README TODO
+
+OPTIONS_DEFINE=	DOCS
+
+.include <bsd.port.pre.mk>
+
+do-install:
+	${MKDIR} ${STAGEDIR}${PREFIX}/${APACHEMODDIR}
+	${APXS} -i -n jail -S LIBEXECDIR=${STAGEDIR}${PREFIX}/${APACHEMODDIR} ${WRKSRC}/.libs/mod_jail.so
+	${MKDIR} ${STAGEDIR}${PREFIX}/${APACHEETCDIR}/modules.d
+	${INSTALL_DATA} ${WRKDIR}/001_mod_jail.conf \
+		${STAGEDIR}${PREFIX}/${APACHEETCDIR}/modules.d/001_mod_jail.conf.sample
+
+.include <bsd.port.post.mk>

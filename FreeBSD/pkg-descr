@@ -1,7 +1,7 @@
-mod_jail2 is Apache 2.0.xx module, that makes running Apache in a secure jail
+mod_jail is Apache 2.xx module, that makes running Apache in a secure jail
 prison easy (without creating a real jail environment containing a copy of
 /lib, /libexec, /usr/lib, etc), so it is intended to run on FreeBSD only. It is
 similar to mod_chroot, but uses FreeBSD's specific system call - jail. Also
 mod_jail make it possible to change securelevel into jail prison.
 
-WWW: http://igorpopov.newmail.ru/mod_jail/
+WWW: https://github.com/sshutdownow/mod-jail

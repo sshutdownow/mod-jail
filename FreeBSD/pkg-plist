@@ -1,0 +1,2 @@
+@sample %%APACHEETCDIR%%/modules.d/001_mod_jail.conf.sample
+%%APACHEMODDIR%%/mod_jail.so
