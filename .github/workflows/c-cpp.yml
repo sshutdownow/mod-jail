@@ -17,6 +17,7 @@ jobs:
       id: build
       uses: vmactions/freebsd-vm@v1
       with:
+        sync: nfs
         envs: 'MYTOKEN MYTOKEN2'
         usesh: true
         cpu: 4
@@ -27,6 +28,12 @@ jobs:
           make
           make install
           install -m 0644 -o 0 -g 0 FreeBSD/2.0/001_mod_jail.conf /usr/local/etc/apache24/modules.d/
+
+    - name: test
+        envs: 'MYTOKEN MYTOKEN2'
+        usesh: true
+        run: |
+          cd $GITHUB_WORKSPACE;
           echo "ServerName localhost" >> /usr/local/etc/apache24/httpd.conf
           service apache24 onestart
           jls
