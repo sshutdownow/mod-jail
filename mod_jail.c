@@ -38,6 +38,8 @@
 #include <sys/sysctl.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <unistd.h>
 
 #if !defined(JAIL_API_VERSION)
@@ -132,9 +134,12 @@ static int jail_init(apr_pool_t *p __unused, apr_pool_t *plog __unused, apr_pool
 
 static void *jail_server_config(apr_pool_t *p, server_rec *s __unused)
 {
-    p_jail_cfg_t cfg = (p_jail_cfg_t) apr_pcalloc(p, sizeof(jail_cfg_t));
     struct in_addr *p_addr = NULL;
+#if JAIL_API_VERSION == 2
+    struct in6_addr *p_addr6 = NULL;
+#endif
 
+    p_jail_cfg_t cfg = (p_jail_cfg_t) apr_pcalloc(p, sizeof(jail_cfg_t));
     if (cfg == NULL) {
         return NULL;
     }
@@ -151,15 +156,22 @@ static void *jail_server_config(apr_pool_t *p, server_rec *s __unused)
         return NULL;
     }
     p_addr->s_addr = htonl(INADDR_LOOPBACK);
+
+    p_addr6 = apr_pcalloc(p, sizeof(struct in6_addr));
+    if (p_addr6 == NULL) {
+        return NULL;
+    }
+    *p_addr6 = (struct in6_addr)IN6ADDR_LOOPBACK_INIT;
+
     cfg->jail = (struct jail) {
 	.version = JAIL_API_VERSION,
 	.path = NULL,
 	.hostname = "localhost",
 	.jailname = NULL,
 	.ip4s = 1,
-	.ip6s = 0,
+	.ip6s = 1,
 	.ip4 = p_addr,
-	.ip6 = NULL };
+	.ip6 = p_addr6 };
 #endif
     cfg->jail_scrlevel = 3; /* good default value */
 
@@ -217,7 +229,7 @@ static const char *set_jail_addr(cmd_parms *cmd, void *dummy __unused, const cha
     if (!arg || !strlen(arg)) {
         return "jail_address must be set";
     }
-    if (!inet_aton(arg, &in)) {
+    if (inet_pton(AF_INET, arg, &in) != 1) {
         return "could not make sense of jail ip address";
     }
 #if JAIL_API_VERSION == 0
@@ -228,6 +240,30 @@ static const char *set_jail_addr(cmd_parms *cmd, void *dummy __unused, const cha
 
     return NULL;
 }
+
+#if JAIL_API_VERSION == 2
+static const char *set_jail_addr6(cmd_parms *cmd, void *dummy __unused, const char *arg)
+{
+    p_jail_cfg_t cfg = ap_get_module_config(cmd->server->module_config, &jail_module);
+    struct in6_addr in6;
+    const char *errmsg = ap_check_cmd_context(cmd, GLOBAL_ONLY);
+
+    if (errmsg) {
+        return errmsg;
+    }
+    if (!arg || !strlen(arg)) {
+        return "jail_address must be set";
+    }
+
+    if (inet_pton(AF_INET6, arg, &in6) != 1) {
+        return "could not make sense of jail ip6 address";
+    }
+    memcpy(&cfg->jail.ip6[0].s6_addr, &in6.s6_addr, sizeof(in6.s6_addr));
+
+    return NULL;
+}
+#endif
+
 
 static const char *set_jail_scrlvl(cmd_parms *cmd, void *dummy __unused, const char *arg)
 {
@@ -240,7 +276,10 @@ static const char *set_jail_scrlvl(cmd_parms *cmd, void *dummy __unused, const c
     if (!arg || !strlen(arg)) {
         return "jail_scrlevel must be value from set {-1, 0, 1, 2, 3}";
     }
-    cfg->jail_scrlevel = strtol(arg, 0, 10) & 0x03;
+    cfg->jail_scrlevel = strtol(arg, 0, 10);
+    if (cfg->jail_scrlevel < -1 || cfg->jail_scrlevel > 3 ) {
+        return "jail_scrlevel must be value from set {-1, 0, 1, 2, 3}";
+    }
 
     return NULL;
 }
@@ -249,7 +288,10 @@ static const char *set_jail_scrlvl(cmd_parms *cmd, void *dummy __unused, const c
 static const command_rec jail_cmds[] = {
     AP_INIT_TAKE1("jail_rootdir",  set_jail_root, NULL, RSRC_CONF, "Set directory that is to be the root of the prison."),
     AP_INIT_TAKE1("jail_hostname", set_jail_host, NULL, RSRC_CONF, "Set hostname of the prison."),
-    AP_INIT_TAKE1("jail_address",  set_jail_addr, NULL, RSRC_CONF, "Set the ip address assigned to the jail prison."),
+    AP_INIT_TAKE1("jail_address",  set_jail_addr, NULL, RSRC_CONF, "Set the IPv4 address assigned to the jail prison."),
+#if JAIL_API_VERSION == 2
+    AP_INIT_TAKE1("jail_address6",  set_jail_addr6, NULL, RSRC_CONF, "Set the IPv6 address assigned to the jail prison."),
+#endif
     AP_INIT_TAKE1("jail_scrlevel", set_jail_scrlvl, NULL, RSRC_CONF, "Set securelevel inside jail prison."),
     { NULL },
 };

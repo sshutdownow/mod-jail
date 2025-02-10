@@ -29,7 +29,8 @@ $(APACHE_MODULE): $(SRCS)
 	$(APXS) -c $(CFLAGS) $(LDFLAGS) $(SRCS)
 
 install: all
-	$(APXS) -i -a -n $(NAME) $(APACHE_MODULE)
+	$(APXS) -i -A -n $(NAME) .libs/$(APACHE_MODULE)
 
 clean:
 	$(RM) $(OBJS) $(APACHE_MODULE)
+	$(RM) -r .libs/
