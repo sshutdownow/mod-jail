@@ -6,6 +6,7 @@
 
 NAME = jail
 APACHE_MODULE = mod_jail.so
+MODULE_LA = $(APACHE_MODULE:%.so=%.la)
 APXS = apxs
 
 SRCS = mod_jail.c
@@ -29,8 +30,8 @@ $(APACHE_MODULE): $(SRCS)
 	$(APXS) -c $(CFLAGS) $(LDFLAGS) $(SRCS)
 
 install: all
-	$(APXS) -i -a -n $(NAME) .libs/$(APACHE_MODULE)
+	$(APXS) -i -a -n $(NAME) $(MODULE_LA)
 
 clean:
-	$(RM) $(OBJS) $(APACHE_MODULE) mod_jail.la mod_jail.lo mod_jail.slo
+	$(RM) $(OBJS) $(APACHE_MODULE) $(MODULE_LA) mod_jail.lo mod_jail.slo
 	$(RM) -r .libs/
